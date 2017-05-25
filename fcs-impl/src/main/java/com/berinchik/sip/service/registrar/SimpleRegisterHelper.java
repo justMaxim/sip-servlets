@@ -1,65 +1,86 @@
 package com.berinchik.sip.service.registrar;
 
-import com.berinchik.sip.config.FlexibleServiceConfigureation;
 import com.berinchik.sip.service.registrar.database.DatabaseAccessor;
-import com.berinchik.sip.service.registrar.database.SimpleDatabaseAccessor;
-import com.berinchik.sip.service.registrar.database.util.UserInfo;
-import com.berinchik.sip.config.ServiceConfig;
+
 import org.json.JSONObject;
 
-import javax.servlet.sip.Address;
-import javax.servlet.sip.SipFactory;
-import javax.servlet.sip.URI;
 import java.util.Date;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 /**
  * Created by Maksim on 24.05.2017.
  */
-public class SimpleRegisterHelper implements Retistrar{
+public class SimpleRegisterHelper implements Registrar {
+
+    private static Log logger = LogFactory.getLog(Registrar.class);
 
     private DatabaseAccessor dbAccessor;
 
-    private SipFactory sipFactory;
+    public SimpleRegisterHelper() {
 
-    public SimpleRegisterHelper(SipFactory sipFactory) throws SQLException {
-        this.sipFactory = sipFactory;
-        this.dbAccessor = new SimpleDatabaseAccessor();
+        ApplicationContext context =
+                new ClassPathXmlApplicationContext("Spring-Module.xml");
+
+        this.dbAccessor = (DatabaseAccessor) context.getBean("databaseAccessorBean");
     }
 
     @Override
-    public ServiceConfig getServiceConfig(URI primaryUserURI) throws SQLException {
-
-        JSONObject serviceConfigJSON = dbAccessor.getServiceConfigJsonObject(primaryUserURI);
-
-        return new FlexibleServiceConfigureation(serviceConfigJSON);
+    public JSONObject getServiceConfig(String primaryUserURI) throws SQLException {
+        return dbAccessor.getServiceConfigJsonObject(primaryUserURI);
     }
 
     @Override
-    public boolean registerUser(URI primaryUserURI, Address binding, long expires) {
+    public RegistrationStatus registerUser(String primaryUserURI, String binding, long expires) {
 
-        if (dbAccessor.userIsPrimary(primaryUserURI)) {
-            dbAccessor.deleteBinding(primaryUserURI, binding);
-            long expiresTime = (new Date().getTime() / 1000) + expires;
-            dbAccessor.addBinding(primaryUserURI, binding, expiresTime);
+        try {
+            if (dbAccessor.userIsPrimary(primaryUserURI)) {
+                dbAccessor.deleteBinding(primaryUserURI, binding);
+                long expiresTime = (new Date().getTime() / 1000) + expires;
+                dbAccessor.addBinding(primaryUserURI, binding, expiresTime);
+                return RegistrationStatus.OK;
+            } else {
+                return RegistrationStatus.USER_NOT_FOUND;
+            }
+        } catch (SQLException e) {
+            logger.error("SQL exception during registration", e);
+            return RegistrationStatus.ERROR;
         }
+    }
+
+    @Override
+    public boolean registerUser(String primaryUserURI, List<String> bindings, long expires) {
         return false;
     }
 
     @Override
-    public boolean registerUser(URI primaryUserURI, List<Address> bindings, long expires) {
-        return false;
+    public boolean isPrimary(String primaryUserURI) throws SQLException {
+        return dbAccessor.userIsPrimary(primaryUserURI);
     }
 
     @Override
-    public boolean isRegistered(URI primaryUserURI) {
-        return dbAccessor.userRegistered(primaryUserURI) != null;
+    public String isRegistered(String bindingURI) throws SQLException {
+        return dbAccessor.isUserRegistered(bindingURI);
     }
 
     @Override
-    public List<Address> getBindings(URI primaryUserURI) {
-
+    public List<String> getBindings(String primaryUserURI) throws SQLException{
         return dbAccessor.getUserBindings(primaryUserURI);
+    }
+
+    @Override
+    public RegistrationStatus deregisterUser(String primaryUserURI, String binding) {
+        return null;
+    }
+
+    @Override
+    public RegistrationStatus deregisterUser(String primaryUserURI) {
+        return null;
     }
 }

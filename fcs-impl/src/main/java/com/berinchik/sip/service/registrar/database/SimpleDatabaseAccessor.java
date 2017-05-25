@@ -4,11 +4,13 @@ import org.json.JSONObject;
 
 import javax.servlet.sip.Address;
 import javax.servlet.sip.URI;
+import javax.sql.DataSource;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
-import org.postgresql.ds.PGConnectionPoolDataSource;
+//import org.postgresql.ds.PGConnectionPoolDataSource;
 
 import org.apache.log4j.Logger;
 
@@ -16,11 +18,7 @@ import org.apache.log4j.Logger;
  * Created by Maksim on 24.05.2017.
  */
 public class SimpleDatabaseAccessor implements DatabaseAccessor {
-
-    private static Logger logger = Logger.getLogger(DatabaseAccessor.class);
-
-    private PGConnectionPoolDataSource dataSource;
-
+    //Database parameters and queries
     private static final String TB_TABLE_PRIMARY_USERS= "primary_users";
 
     private static final String PU_COL_PRIMARY_USER = "pk_user_name";
@@ -51,25 +49,47 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
             BI_COL_EXPIRES);
 
     private static final String BI_DELETE_BINDING_BY_BINDING_NAME
-            = String.format("DELETE %s WHERE %s = ? AND %s = ?", TB_TABLE_BINDINGS, BI_COL_USER_NAME, BI_COL_BINDING);
+            = String.format("DELETE FROM %s WHERE %s = ? AND %s = ?",
+            TB_TABLE_BINDINGS, BI_COL_USER_NAME, BI_COL_BINDING);
 
     private static final String BI_ADD_BINDING_TO_USER_NAME
-            = String.format("INSERT %s WHERE %s = ? AND %s = ?", TB_TABLE_BINDINGS, BI_COL_USER_NAME, BI_COL_BINDING);
+            = String.format("INSERT INTO %s(%s, %s, %s) VALUES(?, ?, ?)",
+            TB_TABLE_BINDINGS, BI_COL_USER_NAME, BI_COL_BINDING, BI_COL_EXPIRES);
+    //-------------------------
 
+    //Fields
+    private static Logger logger = Logger.getLogger(DatabaseAccessor.class);
+    private DataSource dataSource;
 
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
-    public SimpleDatabaseAccessor() throws SQLException {
+    /*public SimpleDatabaseAccessor() throws SQLException {
         dataSource = new PGConnectionPoolDataSource();
         dataSource.setServerName("localhost");
         dataSource.setDatabaseName("test_database");
         dataSource.setUser("test_user");
         dataSource.setPassword("qwerty");
 
+    }*/
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
     }
 
     private PreparedStatement getNewPreparedStatement(String query) throws SQLException{
-        Connection connection = dataSource.getConnection();
-        return connection.prepareStatement(query);
+
+        Connection connection = null;
+
+        try {
+            connection = dataSource.getConnection();
+            return connection.prepareStatement(query);
+        }
+        finally {
+            closeSqlResource(connection);
+        }
     }
 
     private void closeSqlResource(AutoCloseable resourse) {
@@ -84,9 +104,8 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     }
 
     @Override
-    public JSONObject getServiceConfigJsonObject(URI primaryUserURI) throws SQLException {
+    public JSONObject getServiceConfigJsonObject(String primaryUserURI) throws SQLException {
 
-        String userName = primaryUserURI.toString();
         JSONObject serviceSettings = null;
 
         PreparedStatement getServiceConfigStatement = null;
@@ -95,10 +114,10 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
         try {
             if (isUserRegistered(primaryUserURI) != null) {
                 getServiceConfigStatement = getNewPreparedStatement(PU_GET_ALL_ABOUT_USER);
-                getServiceConfigStatement.setString(1, userName);
+                getServiceConfigStatement.setString(1, primaryUserURI);
                 userInfoResultSet = getServiceConfigStatement.executeQuery();
                 if (userInfoResultSet.next()) {
-                    serviceSettings = new JSONObject(userInfoResultSet.getString(PU_COL_PRIMARY_USER));
+                    serviceSettings = new JSONObject(userInfoResultSet.getString(PU_COL_SETTINGS));
                 }
             }
         }
@@ -111,14 +130,14 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     }
 
     @Override
-    public String isUserRegistered(URI UserURI) throws SQLException {
+    public String isUserRegistered(String UserURI) throws SQLException {
         PreparedStatement statement = null;
         ResultSet userInfoResultSet = null;
         String primaryUserURI = null;
 
         try {
             statement = getNewPreparedStatement(BI_GET_BINDINGS_BY_USER_NAME);
-            statement.setString(1, UserURI.toString());
+            statement.setString(1, UserURI);
             userInfoResultSet = statement.executeQuery();
 
             if (userInfoResultSet.next()) {
@@ -135,7 +154,7 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     }
 
     @Override
-    public boolean userIsPrimary(URI primaryUserURI) throws SQLException {
+    public boolean userIsPrimary(String primaryUserURI) throws SQLException {
         PreparedStatement statement = null;
         ResultSet userInfoResultSet = null;
 
@@ -143,7 +162,7 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
 
         try {
             statement = getNewPreparedStatement(PU_GET_ALL_ABOUT_USER);
-            statement.setString(1, primaryUserURI.toString());
+            statement.setString(1, primaryUserURI);
             userInfoResultSet = statement.executeQuery();
 
             if (userInfoResultSet.next()) {
@@ -161,34 +180,65 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     }
 
     @Override
-    public boolean deleteBinding(URI primaryUserURI, Address binding) throws SQLException {
+    public boolean deleteBinding(String primaryUserURI, String binding) throws SQLException {
         PreparedStatement statement = null;
-        ResultSet userInfoResultSet = null;
 
         try {
             statement = getNewPreparedStatement(BI_DELETE_BINDING_BY_BINDING_NAME);
-            statement.setString(1, primaryUserURI.toString());
-            statement.setString(2, binding.toString());
+            statement.setString(1, primaryUserURI);
+            statement.setString(2, binding);
 
             statement.executeUpdate();
         }
         finally {
             closeSqlResource(statement);
-            closeSqlResource(userInfoResultSet);
         }
 
         return true;
     }
 
     @Override
-    public boolean addBinding(URI primaryUserURI, Address binding, long expires) {
+    public boolean addBinding(String primaryUserURI, String binding, long expires) throws SQLException {
+        PreparedStatement statement = null;
+
+        try {
+            statement = getNewPreparedStatement(BI_ADD_BINDING_TO_USER_NAME);
+            statement.setString(1, primaryUserURI);
+            statement.setString(2, binding);
+            statement.setLong(3, expires);
+
+            statement.executeUpdate();
+        }
+        finally {
+            closeSqlResource(statement);
+        }
 
         return false;
     }
 
     @Override
-    public List<Address> getUserBindings(URI primaryUserURI) {
-        return null;
+    public List<String> getUserBindings(String primaryUserURI) throws SQLException {
+        PreparedStatement statement = null;
+        ResultSet userInfoResultSet = null;
+
+        List<String> bindigs = new ArrayList<>();
+
+        try {
+            statement = getNewPreparedStatement(BI_GET_BINDINGS_BY_USER_NAME);
+            statement.setString(1, primaryUserURI);
+            userInfoResultSet = statement.executeQuery();
+
+            while (userInfoResultSet.next()) {
+                bindigs.add(userInfoResultSet.getString(BI_COL_BINDING));
+            }
+
+        }
+        finally {
+            closeSqlResource(statement);
+            closeSqlResource(userInfoResultSet);
+        }
+
+        return bindigs;
     }
 
 }

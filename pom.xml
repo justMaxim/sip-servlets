@@ -12,11 +12,20 @@
         <module>fcs-impl</module>
     </modules>
     <dependencies>
+        <!--spring-->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring</artifactId>
+            <version>2.5.6</version>
+        </dependency>
+
+        <!--json parser-->
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20170516</version>
         </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
         <dependency>
             <groupId>org.postgresql</groupId>
@@ -29,6 +38,7 @@
             <version>3.8.1</version>
             <scope>test</scope>
         </dependency>
+
         <!-- logging dependency -->
         <dependency>
             <groupId>log4j</groupId>
@@ -50,6 +60,7 @@
             <version>2.5</version>
             <scope>provided</scope>
         </dependency>
+
         <!-- sip dependencies -->
         <dependency>
             <groupId>org.mobicents.servlet.sip</groupId>
@@ -58,6 +69,7 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
+
     <!-- repositories -->
     <repositories>
         <repository>
