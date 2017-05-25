@@ -2,6 +2,7 @@ package com.berinchik.sip.service.registrar;
 
 import com.berinchik.sip.service.registrar.database.DatabaseAccessor;
 
+import com.berinchik.sip.service.registrar.database.util.Binding;
 import org.json.JSONObject;
 
 import java.util.Date;
@@ -70,7 +71,7 @@ public class SimpleRegisterHelper implements Registrar {
     }
 
     @Override
-    public List<String> getBindings(String primaryUserURI) throws SQLException{
+    public List<Binding> getBindings(String primaryUserURI) throws SQLException{
         return dbAccessor.getUserBindings(primaryUserURI);
     }
 

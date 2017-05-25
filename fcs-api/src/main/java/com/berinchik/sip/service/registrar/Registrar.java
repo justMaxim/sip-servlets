@@ -1,6 +1,7 @@
 package com.berinchik.sip.service.registrar;
 
 import org.json.JSONObject;
+import com.berinchik.sip.service.registrar.database.util.Binding;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -11,7 +12,12 @@ import java.util.List;
 public interface Registrar {
 
 
-
+    /**
+     * Returns JSON service configuration of user if such exists
+     *
+     * @param primaryUserURI clean URI of primary user
+     * @return JSON service configuration
+     */
     public JSONObject getServiceConfig(String primaryUserURI) throws SQLException;
 
 
@@ -21,13 +27,14 @@ public interface Registrar {
      * @param primaryUserURI clean URI of primary user
      * @return List of binded users or null
      */
-    public List<String> getBindings(String primaryUserURI) throws SQLException;
+    public List<Binding> getBindings(String primaryUserURI) throws SQLException;
 
     /**
+     *  Attempts to add registration information to the user in database, and returns status of registration
      *
-     * @param primaryUserURI
-     * @param binding
-     * @param expires
+     * @param primaryUserURI clean URI of primary user
+     * @param binding clean URI of binding contact
+     * @param expires duration of registration (not the final time)
      * @return
      */
     public RegistrationStatus registerUser(String primaryUserURI, String binding, long expires);

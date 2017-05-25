@@ -1,9 +1,7 @@
 package com.berinchik.sip.service.registrar.database;
 
+import com.berinchik.sip.service.registrar.database.util.Binding;
 import org.json.JSONObject;
-
-import javax.servlet.sip.Address;
-import javax.servlet.sip.URI;
 
 import javax.sql.DataSource;
 
@@ -15,7 +13,7 @@ import java.util.List;
  */
 public interface DatabaseAccessor {
     JSONObject getServiceConfigJsonObject(String primaryUserURI) throws SQLException;
-    List<String> getUserBindings(String primaryUserURI) throws SQLException;
+    List<Binding> getUserBindings(String primaryUserURI) throws SQLException;
     public String isUserRegistered(String binding) throws SQLException;
     public boolean userIsPrimary(String primaryUserURI) throws SQLException;
     public boolean deleteBinding(String primaryUserURI, String binding) throws SQLException;

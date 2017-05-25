@@ -1,9 +1,8 @@
 package com.berinchik.sip.service.registrar.database;
 
+import com.berinchik.sip.service.registrar.database.util.UserBinding;
 import org.json.JSONObject;
 
-import javax.servlet.sip.Address;
-import javax.servlet.sip.URI;
 import javax.sql.DataSource;
 
 import java.sql.*;
@@ -13,6 +12,7 @@ import java.util.List;
 //import org.postgresql.ds.PGConnectionPoolDataSource;
 
 import org.apache.log4j.Logger;
+import com.berinchik.sip.service.registrar.database.util.Binding;
 
 /**
  * Created by Maksim on 24.05.2017.
@@ -92,10 +92,10 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
         }
     }
 
-    private void closeSqlResource(AutoCloseable resourse) {
-        if(resourse != null) {
+    private void closeSqlResource(AutoCloseable resource) {
+        if(resource != null) {
             try {
-                resourse.close();
+                resource.close();
             }
             catch (Exception closeEx) {
                 logger.error("Exception during sql resource closing", closeEx);
@@ -217,11 +217,11 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     }
 
     @Override
-    public List<String> getUserBindings(String primaryUserURI) throws SQLException {
+    public List<Binding> getUserBindings(String primaryUserURI) throws SQLException {
         PreparedStatement statement = null;
         ResultSet userInfoResultSet = null;
 
-        List<String> bindigs = new ArrayList<>();
+        List<Binding> bindings = new ArrayList<>();
 
         try {
             statement = getNewPreparedStatement(BI_GET_BINDINGS_BY_USER_NAME);
@@ -229,7 +229,14 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
             userInfoResultSet = statement.executeQuery();
 
             while (userInfoResultSet.next()) {
-                bindigs.add(userInfoResultSet.getString(BI_COL_BINDING));
+                String contact;
+                long expires = 0;
+
+                contact = userInfoResultSet.getString(BI_COL_BINDING);
+                expires = userInfoResultSet.getLong(BI_COL_EXPIRES);
+
+
+                bindings.add(new UserBinding(contact, primaryUserURI, expires));
             }
 
         }
@@ -238,7 +245,7 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
             closeSqlResource(userInfoResultSet);
         }
 
-        return bindigs;
+        return bindings;
     }
 
 }
