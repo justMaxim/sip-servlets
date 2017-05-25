@@ -2,8 +2,7 @@ package com.berinchik.sip.service.registrar.database;
 
 import com.berinchik.sip.service.registrar.database.util.Binding;
 import org.json.JSONObject;
-
-import javax.sql.DataSource;
+import org.postgresql.ds.PGConnectionPoolDataSource;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -18,6 +17,6 @@ public interface DatabaseAccessor {
     public boolean userIsPrimary(String primaryUserURI) throws SQLException;
     public boolean deleteBinding(String primaryUserURI, String binding) throws SQLException;
     public boolean addBinding(String primaryUserURI, String binding, long expires) throws SQLException;
-    public void setDataSource(DataSource dataSource);
+    public void setDataSource(PGConnectionPoolDataSource dataSource);
 
 }

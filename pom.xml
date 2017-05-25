@@ -11,13 +11,24 @@
         <module>fcs-api</module>
         <module>fcs-impl</module>
     </modules>
+    <properties>
+        <org.springframework-version>4.3.8.RELEASE</org.springframework-version>
+    </properties>
     <dependencies>
         <!--spring-->
-        <dependency>
+        <!-- https://mvnrepository.com/artifact/org.springframework/spring-webmvc -->
+        <!--<dependency>
             <groupId>org.springframework</groupId>
-            <artifactId>spring</artifactId>
-            <version>2.5.6</version>
-        </dependency>
+            <artifactId>spring-context</artifactId>
+            <version>${org.springframework-version}</version>
+            <exclusions>
+                &lt;!&ndash; Exclude Commons Logging in favor of SLF4j &ndash;&gt;
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>-->
 
         <!--json parser-->
         <dependency>
@@ -84,6 +95,12 @@
                 <updatePolicy>never</updatePolicy>
               </snapshots>
         </repository>
+        <!--<repository>
+            <id>org.springframework.maven.milestone</id>
+            <name>Spring Maven Milestone Repository</name>
+            <url>http://repo.spring.io/milestone</url>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>-->
         <repository>
             <id>jboss-public-repository-group</id>
             <name>JBoss Public Maven Repository Group</name>

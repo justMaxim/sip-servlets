@@ -3,7 +3,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
 	http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <import resource="database/Spring-Datasource.xml" />
-    <import resource="customer/Spring-Customer.xml" />
+    <import resource="database/Spring-datasource.xml" />
+    <import resource="customer/Spring-data-accessor.xml" />
 
 </beans>

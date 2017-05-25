@@ -2,15 +2,14 @@ package com.berinchik.sip.service.registrar;
 
 import com.berinchik.sip.service.registrar.database.DatabaseAccessor;
 
+import com.berinchik.sip.service.registrar.database.SimpleDatabaseAccessor;
+
 import com.berinchik.sip.service.registrar.database.util.Binding;
 import org.json.JSONObject;
 
 import java.util.Date;
 import java.sql.SQLException;
 import java.util.List;
-
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -24,12 +23,8 @@ public class SimpleRegisterHelper implements Registrar {
 
     private DatabaseAccessor dbAccessor;
 
-    public SimpleRegisterHelper() {
-
-        ApplicationContext context =
-                new ClassPathXmlApplicationContext("Spring-Module.xml");
-
-        this.dbAccessor = (DatabaseAccessor) context.getBean("databaseAccessorBean");
+    public SimpleRegisterHelper() throws SQLException {
+        this.dbAccessor = new SimpleDatabaseAccessor();
     }
 
     @Override

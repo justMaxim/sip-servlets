@@ -17,7 +17,10 @@
 package com.berinchik.sip;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -30,11 +33,11 @@ import javax.servlet.ServletResponse;
 import javax.servlet.sip.*;
 
 import com.berinchik.sip.service.registrar.Registrar;
-import com.berinchik.sip.service.registrar.RegistrationStatus;
 import com.berinchik.sip.service.registrar.SimpleRegisterHelper;
 import com.berinchik.sip.service.registrar.database.util.Binding;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.postgresql.ds.PGConnectionPoolDataSource;
 
 import static javax.servlet.sip.SipServletResponse.*;
 
@@ -65,9 +68,16 @@ public class FlexibleCommunicationService extends SipServlet {
 	}
 
 	@Override
-	public void service(ServletRequest req, ServletResponse resp) throws ServletException, IOException {
+	public void service(ServletRequest req, ServletResponse resp) throws ServletException, IOException{
 
-		addUtilAttributesToAppSession(getAppSession((SipServletMessage)req, (SipServletMessage)resp));
+		try {
+			addUtilAttributesToAppSession(getAppSession((SipServletMessage)req, (SipServletMessage)resp));
+		}
+		catch (SQLException ex) {
+			logger.error("Unable to connect data source", ex);
+			throw new ServletException("Server is down");
+		}
+
 
 		super.service(req, resp);
 	}
@@ -92,35 +102,45 @@ public class FlexibleCommunicationService extends SipServlet {
 		logger.info("Got REGISTER:\n"
 				+ request.toString());
 
+		logMessageInfo(request);
+
 		Registrar registrar = getRegistrarHelper(request);
 
-		URI toURI = sipFactory.createURI(request.getHeader(SC_TO_HEADER));
-		String cleanToURI = cleanUri(toURI);
+		URI toURI = request.getTo().getURI();
+		//String cleanToURI = cleanUri(toAddress);
 
-		ListIterator<String> contacts = request.getHeaders(SC_CONTACT_HEADER);
+		ListIterator<Address> contacts = request.getAddressHeaders(SC_CONTACT_HEADER);
 
-		String firstContact = null;
-		if (contacts.hasNext())
+		Address firstContact = null;
+		if (contacts.hasNext()){
 			firstContact = contacts.next();
+			logger.info("contact: " + firstContact);
+		}
 
 		SipServletResponse resp = null;
 
 		try {
-			if (!registrar.isPrimary(cleanToURI)) {
-				logger.info("Primary user " + cleanToURI + " not found during registration");
+			logger.info("trying to register");
+			if (registrar == null) {
+				logger.info("registrar not initialised!!!");
+			}
+
+			if (!registrar.isPrimary(toURI.toString())) {
+				logger.info("Primary user " + toURI + " not found during registration");
 				resp = request.createResponse(SC_NOT_FOUND, "No such user");
 			}
 			else if(firstContact == null) {
 				logger.info("No contact headers during registration to "
-						+ cleanToURI
+						+ toURI
 						+ "\nReturning all bindings");
 
 				resp = create200OkWithAllBindings(request, registrar);
 			}
-			else if ("*".equals(firstContact)) {
+			else if (firstContact.isWildcard()) {
+				logger.info("First contact is Wildcard");
 				if (request.getExpires() == 0) {
 					logger.info("Contact = *, Expire = 0: complete de registration");
-					registrar.deregisterUser(cleanToURI);
+					registrar.deregisterUser(toURI.toString());
 					resp = request.createResponse(SC_OK, "Ok");
 					resp.removeHeader(SC_EXPIRES_HEADER);
 				}
@@ -131,17 +151,17 @@ public class FlexibleCommunicationService extends SipServlet {
 			}
 			else {
 				logger.info("Request is recognized as registration request");
-				String nextContact = firstContact;
+				Address nextContact = firstContact;
 
 				while(contacts.hasNext()) {
 					logger.info("Trying to register contact "
 							+ nextContact
 							+ " to user "
-							+ cleanToURI);
-					Address contactAddress = sipFactory.createAddress(nextContact);
-					int expires = getExpires(contactAddress, request);
+							+ toURI);
 
-					registrar.registerUser(cleanToURI, nextContact, expires);
+					int expires = getExpires(nextContact, request);
+
+					registrar.registerUser(toURI.toString(), nextContact.getURI().toString(), expires);
 					nextContact = contacts.next();
 				}
 
@@ -154,6 +174,8 @@ public class FlexibleCommunicationService extends SipServlet {
 			logger.error("Runtime exception", e);
 			resp = request.createResponse(SC_SERVER_INTERNAL_ERROR, "Server internal error");
 		}
+
+		logger.info("Sending response: \n" + resp);
 
 		resp.send();
 	}
@@ -187,20 +209,20 @@ public class FlexibleCommunicationService extends SipServlet {
 		return appSession;
 	}
 
-	void addUtilAttributesToAppSession(SipApplicationSession appSession) {
+	void addUtilAttributesToAppSession(SipApplicationSession appSession) throws SQLException{
 		if (appSession.getAttribute(SC_REGISTER_HELPER) == null) {
 			appSession.setAttribute(SC_REGISTER_HELPER, new SimpleRegisterHelper());
 		}
 	}
 
 	Registrar getRegistrarHelper(SipServletMessage message) {
-		return (Registrar) message.getAttribute(SC_REGISTER_HELPER);
+		return (Registrar) getAppSession(message).getAttribute(SC_REGISTER_HELPER);
 	}
 
 	String cleanUri(URI uri) {
 		Iterator<String> parameterNames = uri.getParameterNames();
 		String parameter = null;
-		while ((parameter = parameterNames.next())!= null) {
+		while ( parameterNames.hasNext()) {
 			uri.removeParameter(parameter);
 		}
 		return uri.toString();
@@ -232,7 +254,7 @@ public class FlexibleCommunicationService extends SipServlet {
 	private SipServletResponse create200OkWithAllBindings(SipServletRequest request, Registrar registrar)
 			throws SQLException, ServletParseException {
 
-		String cleanToUri = cleanUri(request.getTo());
+		String cleanToUri = request.getTo().toString();
 
 		SipServletResponse resp = request.createResponse(SC_OK, "Ok");
 		addContactHeaders(resp, registrar.getBindings(cleanToUri));
@@ -248,6 +270,32 @@ public class FlexibleCommunicationService extends SipServlet {
 		}
 
 		return expires;
+	}
+
+	void logMessageInfo(SipServletMessage message) throws ServletParseException {
+
+		Address address = message.getTo();
+		logger.info("\n\nTo header Address info:\n");
+		logAddressInfo(address);
+
+		address = message.getFrom();
+		logger.info("\n\nFrom header Address info:\n");
+		logAddressInfo(address);
+
+		address = message.getAddressHeader(SC_CONTACT_HEADER);
+		logger.info("\n\nContact header Address info:\n");
+		logAddressInfo(address);
+
+	}
+
+	void logAddressInfo(Address toAddress) {
+		logger.info("\nexpires: " + toAddress.getExpires()
+				+ "\ntoAddress: " + toAddress
+				+ "\ntoAddress.getDisplayName(): " + toAddress.getDisplayName()
+				+ "\ntoAddress.getURI(): " + toAddress.getURI()
+				+ "\ntoAddress.getValue(): " + toAddress.getValue()
+				+ "\ntoAddress.getQ: " + toAddress.getQ()
+		);
 	}
 
 	/*RegistrationStatus doRegister(URI to, Address binding, long expires, Registrar registrar) throws SQLException {

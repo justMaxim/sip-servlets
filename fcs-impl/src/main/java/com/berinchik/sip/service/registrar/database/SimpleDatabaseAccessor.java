@@ -13,6 +13,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import com.berinchik.sip.service.registrar.database.util.Binding;
+import org.postgresql.ds.PGConnectionPoolDataSource;
 
 /**
  * Created by Maksim on 24.05.2017.
@@ -59,20 +60,20 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
 
     //Fields
     private static Logger logger = Logger.getLogger(DatabaseAccessor.class);
-    private DataSource dataSource;
+    private PGConnectionPoolDataSource dataSource;
 
-    public void setDataSource(DataSource dataSource) {
+    public void setDataSource(PGConnectionPoolDataSource dataSource) {
         this.dataSource = dataSource;
     }
 
-    /*public SimpleDatabaseAccessor() throws SQLException {
+    public SimpleDatabaseAccessor() throws SQLException {
         dataSource = new PGConnectionPoolDataSource();
         dataSource.setServerName("localhost");
         dataSource.setDatabaseName("test_database");
         dataSource.setUser("test_user");
         dataSource.setPassword("qwerty");
 
-    }*/
+    }
 
     @Override
     protected void finalize() throws Throwable {
@@ -87,8 +88,9 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
             connection = dataSource.getConnection();
             return connection.prepareStatement(query);
         }
-        finally {
+        catch(SQLException ex) {
             closeSqlResource(connection);
+            throw ex;
         }
     }
 
@@ -166,6 +168,9 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
             userInfoResultSet = statement.executeQuery();
 
             if (userInfoResultSet.next()) {
+                logger.info("User is primary:\n"
+                        + userInfoResultSet.getString(PU_COL_PRIMARY_USER)
+                        +"\n" + userInfoResultSet.getString(PU_COL_SETTINGS));
                 isPrimary = true;
             }
 
