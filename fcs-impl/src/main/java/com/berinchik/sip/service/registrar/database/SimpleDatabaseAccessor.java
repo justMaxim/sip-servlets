@@ -19,9 +19,9 @@ import com.berinchik.sip.service.registrar.database.util.Binding;
  */
 public class SimpleDatabaseAccessor implements DatabaseAccessor {
     //Database parameters and queries
-    private static final String TB_TABLE_PRIMARY_USERS= "primary_users";
+    private static final String TB_TABLE_PRIMARY_USERS= "users";
 
-    private static final String PU_COL_PRIMARY_USER = "pk_user_name";
+    private static final String PU_COL_PRIMARY_USER = "user_name";
     private static final String PU_COL_ID = "id";
     private static final String PU_COL_SETTINGS = "settings";
 
@@ -34,7 +34,7 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     private static final String TB_TABLE_BINDINGS= "bindings";
 
     private static final String BI_COL_BINDING = "binding";
-    private static final String BI_COL_USER_NAME = "fk_user_name";
+    private static final String BI_COL_USER_NAME = "user_name";
     private static final String BI_COL_EXPIRES = "expires";
 
 
