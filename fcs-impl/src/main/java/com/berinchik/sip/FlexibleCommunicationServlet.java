@@ -31,10 +31,12 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.sip.*;
 
+import com.berinchik.sip.service.fsm.FlexibleCommunicationServiceContext;
 import com.berinchik.sip.service.registrar.Registrar;
 import com.berinchik.sip.service.registrar.SimpleRegisterHelper;
 import com.berinchik.sip.service.registrar.database.util.Binding;
 
+import com.berinchik.sip.util.CommonUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -48,12 +50,9 @@ import static javax.servlet.sip.SipServletResponse.*;
  */
 public class FlexibleCommunicationServlet extends SipServlet {
 
-	static final String SC_REGISTER_HELPER = "registerHelper";
-	static final String SC_DATABASE_ACCESS = "databaseAccess";
+	private static final String SC_DATABASE_ACCESS = "DatabaseAccess";
 
-	static final String SC_CONTACT_HEADER = "Contact";
-	static final String SC_TO_HEADER = "To";
-	static final String SC_EXPIRES_HEADER = "Expire";
+
 
 	private static Log logger = LogFactory.getLog(FlexibleCommunicationServlet.class);
 
@@ -103,12 +102,12 @@ public class FlexibleCommunicationServlet extends SipServlet {
 
 		logMessageInfo(request);
 
-		Registrar registrar = getRegistrarHelper(request);
+		Registrar registrar = CommonUtils.getRegistrarHelper(request);
 
 		URI toURI = request.getTo().getURI();
 		//String cleanToURI = cleanUri(toAddress);
 
-		ListIterator<Address> contacts = request.getAddressHeaders(SC_CONTACT_HEADER);
+		ListIterator<Address> contacts = request.getAddressHeaders(CommonUtils.SC_CONTACT_HEADER);
 
 		Address firstContact = null;
 		if (contacts.hasNext()){
@@ -143,7 +142,7 @@ public class FlexibleCommunicationServlet extends SipServlet {
 					logger.info("Contact = *, Expire = 0: complete de registration");
 					registrar.deregisterUser(toURI.toString());
 					resp = request.createResponse(SC_OK, "Ok");
-					resp.removeHeader(SC_EXPIRES_HEADER);
+					resp.removeHeader(CommonUtils.SC_EXPIRES_HEADER);
 				}
 				else {
 					logger.info("Contact = *, Expire != 0: request could not be understood");
@@ -156,7 +155,7 @@ public class FlexibleCommunicationServlet extends SipServlet {
 						+ "\nuser - " + toURI);
 				registrar.deregisterUser(toURI.toString(), firstContact.getURI().toString());
 				resp = request.createResponse(SC_OK, "Ok");
-				resp.removeHeader(SC_EXPIRES_HEADER);
+				resp.removeHeader(CommonUtils.SC_EXPIRES_HEADER);
 			}
 			else {
 				logger.info("Request is recognized as registration request");
@@ -196,7 +195,7 @@ public class FlexibleCommunicationServlet extends SipServlet {
 		sipServletResponse.send();	
 	}
 
-	SipApplicationSession getAppSession(SipServletMessage message1, SipServletMessage message2) {
+	private SipApplicationSession getAppSession(SipServletMessage message1, SipServletMessage message2) {
 
 		SipApplicationSession appSession = null;
 
@@ -208,7 +207,7 @@ public class FlexibleCommunicationServlet extends SipServlet {
 		return appSession;
 	}
 
-	SipApplicationSession getAppSession(SipServletMessage message) {
+	private SipApplicationSession getAppSession(SipServletMessage message) {
 
 		SipApplicationSession appSession = null;
 
@@ -218,14 +217,14 @@ public class FlexibleCommunicationServlet extends SipServlet {
 		return appSession;
 	}
 
-	void addUtilAttributesToAppSession(SipApplicationSession appSession) throws SQLException{
-		if (appSession.getAttribute(SC_REGISTER_HELPER) == null) {
-			appSession.setAttribute(SC_REGISTER_HELPER, new SimpleRegisterHelper());
+	private void addUtilAttributesToAppSession(SipApplicationSession appSession) throws SQLException{
+		if (appSession.getAttribute(CommonUtils.SC_REGISTER_HELPER) == null) {
+			appSession.setAttribute(CommonUtils.SC_REGISTER_HELPER, new SimpleRegisterHelper());
 		}
-	}
-
-	Registrar getRegistrarHelper(SipServletMessage message) {
-		return (Registrar) getAppSession(message).getAttribute(SC_REGISTER_HELPER);
+		if (appSession.getAttribute(CommonUtils.SC_FLEX_COMM_SERVICE_CONTEXT) == null) {
+			appSession.setAttribute(CommonUtils.SC_FLEX_COMM_SERVICE_CONTEXT,
+					new FlexibleCommunicationServiceContext(this.sipFactory));
+		}
 	}
 
 	String cleanUri(URI uri) {
@@ -259,7 +258,7 @@ public class FlexibleCommunicationServlet extends SipServlet {
 
 			Address contactAddress = sipFactory.createAddress(contact);
 			contactAddress.setExpires((int) expiresTime);
-			message.setAddressHeader(SC_CONTACT_HEADER, contactAddress);
+			message.setAddressHeader(CommonUtils.SC_CONTACT_HEADER, contactAddress);
 		}
 	}
 
@@ -271,7 +270,7 @@ public class FlexibleCommunicationServlet extends SipServlet {
 
 		SipServletResponse resp = request.createResponse(SC_OK, "Ok");
 		addContactHeaders(resp, registrar.getBindings(cleanToUri));
-		resp.removeHeader(SC_EXPIRES_HEADER);
+		resp.removeHeader(CommonUtils.SC_EXPIRES_HEADER);
 
 		return resp;
 	}
@@ -295,7 +294,7 @@ public class FlexibleCommunicationServlet extends SipServlet {
 		logger.info("\n\nFrom header Address info:\n");
 		logAddressInfo(address);
 
-		address = message.getAddressHeader(SC_CONTACT_HEADER);
+		address = message.getAddressHeader(CommonUtils.SC_CONTACT_HEADER);
 		logger.info("\n\nContact header Address info:\n");
 		logAddressInfo(address);
 
@@ -310,25 +309,4 @@ public class FlexibleCommunicationServlet extends SipServlet {
 				+ "\ntoAddress.getQ: " + toAddress.getQ()
 		);
 	}
-
-	/*RegistrationStatus doRegister(URI to, Address binding, long expires, Registrar registrar) throws SQLException {
-
-		String toUri = cleanUri(to);
-
-		if (registrar.) {
-
-		}
-
-		String expiresParameter = binding.getParameter(SC_EXPIRES_HEADER);
-
-		if (expiresParameter != null) {
-			expires = Long.valueOf(expiresParameter);
-		}
-
-		if (expires != 0) {
-
-		}
-
-
-	}*/
 }

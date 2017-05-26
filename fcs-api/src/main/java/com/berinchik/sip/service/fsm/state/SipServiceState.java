@@ -1,10 +1,8 @@
-package com.berinchik.sip.service.fsm;
+package com.berinchik.sip.service.fsm.state;
+
+import com.berinchik.sip.service.fsm.SipServiceContext;
 
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.sip.SipFactory;
-import javax.servlet.sip.SipServlet;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import java.io.IOException;
@@ -12,9 +10,8 @@ import java.io.IOException;
 /**
  * Created by Maksim on 26.05.2017.
  */
-public interface SipServiceContext {
-
-    void doAck(SipServletRequest req) throws ServletException, IOException;
+public interface SipServiceState {
+    void doAck(SipServletRequest req, SipServiceContext context) throws ServletException, IOException;
 
     void doBye(SipServletRequest req) throws ServletException, IOException;
 
@@ -33,7 +30,4 @@ public interface SipServiceContext {
     void doSuccessResponse(SipServletResponse resp) throws ServletException, IOException;
 
     void doUpdate(SipServletRequest req) throws ServletException, IOException;
-
-    SipFactory getSipFactory();
-
 }
