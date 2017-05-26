@@ -1,5 +1,7 @@
 package com.berinchik.sip.service.registrar.database.util;
 
+import com.berinchik.sip.util.CommonUtils;
+
 import java.util.Date;
 
 /**
@@ -15,6 +17,13 @@ public class UserBinding implements Binding {
         this.bindingURI = bindingAddress;
         this.primaryUserURI = primaryUserURI;
         this.expires = expires;
+    }
+
+    @Override
+    public String toString() {
+        return "Binding URI: " + bindingURI
+                + "\n Primary user: " + primaryUserURI
+                + "\n Expures: " + getDuration();
     }
 
     @Override
@@ -49,6 +58,6 @@ public class UserBinding implements Binding {
 
     @Override
     public long getDuration() {
-        return expires - (new Date().getTime()) / 1000;
+        return expires - CommonUtils.getCurrentTimestampInSeconds();
     }
 }

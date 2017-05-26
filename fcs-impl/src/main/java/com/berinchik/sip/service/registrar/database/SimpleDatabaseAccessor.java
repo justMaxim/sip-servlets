@@ -1,9 +1,9 @@
 package com.berinchik.sip.service.registrar.database;
 
 import com.berinchik.sip.service.registrar.database.util.UserBinding;
-import org.json.JSONObject;
+import com.berinchik.sip.util.CommonUtils;
 
-import javax.sql.DataSource;
+import org.json.JSONObject;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -43,10 +43,11 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
             = String.format("SELECT %s FROM %s WHERE %s = ?", BI_COL_USER_NAME, TB_TABLE_BINDINGS, BI_COL_BINDING);
 
     private static final String BI_GET_BINDINGS_BY_USER_NAME
-            = String.format("SELECT %s FROM %s WHERE %s = ? AND %s < ?",
+            = String.format("SELECT %s, %s FROM %s WHERE %s = ? AND %s > ?",
             BI_COL_BINDING,
+            BI_COL_EXPIRES,
             TB_TABLE_BINDINGS,
-            PU_COL_PRIMARY_USER,
+            BI_COL_USER_NAME,
             BI_COL_EXPIRES);
 
     private static final String BI_DELETE_BINDING_BY_BINDING_NAME
@@ -56,6 +57,10 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     private static final String BI_ADD_BINDING_TO_USER_NAME
             = String.format("INSERT INTO %s(%s, %s, %s) VALUES(?, ?, ?)",
             TB_TABLE_BINDINGS, BI_COL_USER_NAME, BI_COL_BINDING, BI_COL_EXPIRES);
+
+    private static final String BI_DELETE_ALL_BINDINGS_TO_USER
+            = String.format("DELETE FROM %s WHERE %s = ?",
+            TB_TABLE_BINDINGS, BI_COL_USER_NAME);
     //-------------------------
 
     //Fields
@@ -69,9 +74,9 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     public SimpleDatabaseAccessor() throws SQLException {
         dataSource = new PGConnectionPoolDataSource();
         dataSource.setServerName("localhost");
-        dataSource.setDatabaseName("test_database");
-        dataSource.setUser("test_user");
-        dataSource.setPassword("qwerty");
+        dataSource.setDatabaseName("register");
+        dataSource.setUser("db_user");
+        dataSource.setPassword("1111");
 
     }
 
@@ -140,6 +145,7 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
         try {
             statement = getNewPreparedStatement(BI_GET_BINDINGS_BY_USER_NAME);
             statement.setString(1, UserURI);
+            statement.setInt(2,(int)CommonUtils.getCurrentTimestampInSeconds());
             userInfoResultSet = statement.executeQuery();
 
             if (userInfoResultSet.next()) {
@@ -165,6 +171,7 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
         try {
             statement = getNewPreparedStatement(PU_GET_ALL_ABOUT_USER);
             statement.setString(1, primaryUserURI);
+            logger.info(statement.toString());
             userInfoResultSet = statement.executeQuery();
 
             if (userInfoResultSet.next()) {
@@ -187,13 +194,17 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     @Override
     public boolean deleteBinding(String primaryUserURI, String binding) throws SQLException {
         PreparedStatement statement = null;
-
         try {
             statement = getNewPreparedStatement(BI_DELETE_BINDING_BY_BINDING_NAME);
             statement.setString(1, primaryUserURI);
             statement.setString(2, binding);
 
+            logger.info(statement.toString());
+
             statement.executeUpdate();
+
+            logger.info("Removed binding of: " + binding
+                    + " to " + primaryUserURI);
         }
         finally {
             closeSqlResource(statement);
@@ -205,7 +216,8 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     @Override
     public boolean addBinding(String primaryUserURI, String binding, long expires) throws SQLException {
         PreparedStatement statement = null;
-
+        logger.info("Adding binding " + binding
+                + "\n");
         try {
             statement = getNewPreparedStatement(BI_ADD_BINDING_TO_USER_NAME);
             statement.setString(1, primaryUserURI);
@@ -222,6 +234,11 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     }
 
     @Override
+    public boolean deleteAllBindings(String primaryUserURI) {
+        return false;
+    }
+
+    @Override
     public List<Binding> getUserBindings(String primaryUserURI) throws SQLException {
         PreparedStatement statement = null;
         ResultSet userInfoResultSet = null;
@@ -229,8 +246,11 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
         List<Binding> bindings = new ArrayList<>();
 
         try {
+            logger.info("Trying to get bindings of the user " + primaryUserURI);
             statement = getNewPreparedStatement(BI_GET_BINDINGS_BY_USER_NAME);
             statement.setString(1, primaryUserURI);
+            statement.setInt(2, (int)CommonUtils.getCurrentTimestampInSeconds());
+            logger.info(statement.toString());
             userInfoResultSet = statement.executeQuery();
 
             while (userInfoResultSet.next()) {
@@ -240,6 +260,7 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
                 contact = userInfoResultSet.getString(BI_COL_BINDING);
                 expires = userInfoResultSet.getLong(BI_COL_EXPIRES);
 
+                logger.info("\n\tgot binding: " + contact);
 
                 bindings.add(new UserBinding(contact, primaryUserURI, expires));
             }

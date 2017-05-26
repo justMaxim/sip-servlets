@@ -1,13 +1,12 @@
 package com.berinchik.sip.service.registrar;
 
 import com.berinchik.sip.service.registrar.database.DatabaseAccessor;
-
 import com.berinchik.sip.service.registrar.database.SimpleDatabaseAccessor;
-
 import com.berinchik.sip.service.registrar.database.util.Binding;
+import com.berinchik.sip.util.CommonUtils;
+
 import org.json.JSONObject;
 
-import java.util.Date;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -33,20 +32,14 @@ public class SimpleRegisterHelper implements Registrar {
     }
 
     @Override
-    public RegistrationStatus registerUser(String primaryUserURI, String binding, long expires) {
-
-        try {
-            if (dbAccessor.userIsPrimary(primaryUserURI)) {
-                dbAccessor.deleteBinding(primaryUserURI, binding);
-                long expiresTime = (new Date().getTime() / 1000) + expires;
-                dbAccessor.addBinding(primaryUserURI, binding, expiresTime);
-                return RegistrationStatus.OK;
-            } else {
-                return RegistrationStatus.USER_NOT_FOUND;
-            }
-        } catch (SQLException e) {
-            logger.error("SQL exception during registration", e);
-            return RegistrationStatus.ERROR;
+    public boolean registerUser(String primaryUserURI, String binding, long expires) throws SQLException {
+        if (dbAccessor.userIsPrimary(primaryUserURI)) {
+            dbAccessor.deleteBinding(primaryUserURI, binding);
+            long expiresTime = CommonUtils.getCurrentTimestampInSeconds() + expires;
+            dbAccessor.addBinding(primaryUserURI, binding, expiresTime);
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -71,12 +64,12 @@ public class SimpleRegisterHelper implements Registrar {
     }
 
     @Override
-    public RegistrationStatus deregisterUser(String primaryUserURI, String binding) {
-        return null;
+    public boolean deregisterUser(String primaryUserURI, String binding) throws SQLException {
+        return dbAccessor.deleteBinding(primaryUserURI, binding);
     }
 
     @Override
-    public RegistrationStatus deregisterUser(String primaryUserURI) {
-        return null;
+    public boolean deregisterUser(String primaryUserURI) {
+        return dbAccessor.deleteAllBindings(primaryUserURI);
     }
 }

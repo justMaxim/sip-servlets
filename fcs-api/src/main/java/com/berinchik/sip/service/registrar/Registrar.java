@@ -37,7 +37,7 @@ public interface Registrar {
      * @param expires duration of registration (not the final time)
      * @return
      */
-    public RegistrationStatus registerUser(String primaryUserURI, String binding, long expires);
+    public boolean registerUser(String primaryUserURI, String binding, long expires) throws SQLException;
 
     /**
      * Removes specified binding to the primary user form database
@@ -46,14 +46,14 @@ public interface Registrar {
      * @param binding clean URI of binding contact
      * @return RegistrationStatus enumeration
      */
-    public RegistrationStatus deregisterUser(String primaryUserURI, String binding);
+    public boolean deregisterUser(String primaryUserURI, String binding) throws SQLException;
 
     /**
      * Removes all contacts binded to this URI
      * @param primaryUserURI clean URI of primary user
      * @return RegistrationStatus enumeration
      */
-    public RegistrationStatus deregisterUser(String primaryUserURI);
+    public boolean deregisterUser(String primaryUserURI);
 
     public boolean registerUser(String primaryUserURI, List<String> binding, long expires);
 

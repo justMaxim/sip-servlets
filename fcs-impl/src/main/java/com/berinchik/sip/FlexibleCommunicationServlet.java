@@ -17,10 +17,9 @@
 package com.berinchik.sip;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.ResultSet;
+
 import java.sql.SQLException;
-import java.sql.Statement;
+
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -35,9 +34,9 @@ import javax.servlet.sip.*;
 import com.berinchik.sip.service.registrar.Registrar;
 import com.berinchik.sip.service.registrar.SimpleRegisterHelper;
 import com.berinchik.sip.service.registrar.database.util.Binding;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.postgresql.ds.PGConnectionPoolDataSource;
 
 import static javax.servlet.sip.SipServletResponse.*;
 
@@ -47,7 +46,7 @@ import static javax.servlet.sip.SipServletResponse.*;
  * @author Jean Deruelle
  *
  */
-public class FlexibleCommunicationService extends SipServlet {
+public class FlexibleCommunicationServlet extends SipServlet {
 
 	static final String SC_REGISTER_HELPER = "registerHelper";
 	static final String SC_DATABASE_ACCESS = "databaseAccess";
@@ -56,7 +55,7 @@ public class FlexibleCommunicationService extends SipServlet {
 	static final String SC_TO_HEADER = "To";
 	static final String SC_EXPIRES_HEADER = "Expire";
 
-	private static Log logger = LogFactory.getLog(FlexibleCommunicationService.class);
+	private static Log logger = LogFactory.getLog(FlexibleCommunicationServlet.class);
 
 	@Resource
 	private SipFactory sipFactory;
@@ -114,6 +113,7 @@ public class FlexibleCommunicationService extends SipServlet {
 		Address firstContact = null;
 		if (contacts.hasNext()){
 			firstContact = contacts.next();
+			contacts.previous();
 			logger.info("contact: " + firstContact);
 		}
 
@@ -122,7 +122,8 @@ public class FlexibleCommunicationService extends SipServlet {
 		try {
 			logger.info("trying to register");
 			if (registrar == null) {
-				logger.info("registrar not initialised!!!");
+				logger.error("registrar not initialised!!!");
+				throw new RuntimeException("Registrar is not initialised");
 			}
 
 			if (!registrar.isPrimary(toURI.toString())) {
@@ -149,20 +150,28 @@ public class FlexibleCommunicationService extends SipServlet {
 					resp = request.createResponse(SC_BAD_REQUEST, "Bad request");
 				}
 			}
+			else if (request.getExpires() == 0) {
+				logger.info("Request is recognized as de registration"
+						+ "\ncontact - " + firstContact
+						+ "\nuser - " + toURI);
+				registrar.deregisterUser(toURI.toString(), firstContact.getURI().toString());
+				resp = request.createResponse(SC_OK, "Ok");
+				resp.removeHeader(SC_EXPIRES_HEADER);
+			}
 			else {
 				logger.info("Request is recognized as registration request");
-				Address nextContact = firstContact;
-
 				while(contacts.hasNext()) {
+
+					Address nextContact = contacts.next();
+
 					logger.info("Trying to register contact "
-							+ nextContact
+							+ nextContact.getURI()
 							+ " to user "
 							+ toURI);
 
 					int expires = getExpires(nextContact, request);
 
 					registrar.registerUser(toURI.toString(), nextContact.getURI().toString(), expires);
-					nextContact = contacts.next();
 				}
 
 				resp = create200OkWithAllBindings(request, registrar);
@@ -240,8 +249,11 @@ public class FlexibleCommunicationService extends SipServlet {
 	 * @throws ServletParseException
 	 */
 	private void addContactHeaders(SipServletMessage message, List<Binding> bindings) throws ServletParseException {
+		logger.info("Adding contact headers to the message:\n"
+				+ message);
 		for (Binding binding:
 			 bindings) {
+			logger.info("Binding: \n" + binding);
 			long expiresTime = binding.getDuration();
 			String contact = binding.getBindingURI();
 
@@ -254,7 +266,8 @@ public class FlexibleCommunicationService extends SipServlet {
 	private SipServletResponse create200OkWithAllBindings(SipServletRequest request, Registrar registrar)
 			throws SQLException, ServletParseException {
 
-		String cleanToUri = request.getTo().toString();
+		logger.info("Creating 200 Ok for success registration.");
+		String cleanToUri = request.getTo().getURI().toString();
 
 		SipServletResponse resp = request.createResponse(SC_OK, "Ok");
 		addContactHeaders(resp, registrar.getBindings(cleanToUri));

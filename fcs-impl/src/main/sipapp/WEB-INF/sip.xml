@@ -15,7 +15,7 @@
 		<display-name>FlexibleCommunicationServlet</display-name>
 		<description>Implements simple register and configurable communication diversion</description>
 		<servlet-class>
-            com.berinchik.sip.FlexibleCommunicationService
+            com.berinchik.sip.FlexibleCommunicationServlet
         </servlet-class>
 		<load-on-startup>1</load-on-startup>
 	</servlet>	

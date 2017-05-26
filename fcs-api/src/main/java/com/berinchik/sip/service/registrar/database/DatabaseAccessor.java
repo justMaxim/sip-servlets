@@ -17,6 +17,6 @@ public interface DatabaseAccessor {
     public boolean userIsPrimary(String primaryUserURI) throws SQLException;
     public boolean deleteBinding(String primaryUserURI, String binding) throws SQLException;
     public boolean addBinding(String primaryUserURI, String binding, long expires) throws SQLException;
-    public void setDataSource(PGConnectionPoolDataSource dataSource);
-
+    //public void setDataSource(PGConnectionPoolDataSource dataSource);
+    public boolean deleteAllBindings(String primaryUserURI);
 }
