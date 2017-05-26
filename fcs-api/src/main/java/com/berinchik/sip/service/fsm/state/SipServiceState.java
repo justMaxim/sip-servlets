@@ -2,7 +2,7 @@ package com.berinchik.sip.service.fsm.state;
 
 import com.berinchik.sip.service.fsm.SipServiceContext;
 
-import javax.servlet.ServletException;
+import javax.servlet.sip.SipErrorEvent;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import java.io.IOException;
@@ -11,23 +11,27 @@ import java.io.IOException;
  * Created by Maksim on 26.05.2017.
  */
 public interface SipServiceState {
-    void doAck(SipServletRequest req, SipServiceContext context) throws ServletException, IOException;
+    void doAck(SipServletRequest req, SipServiceContext context);
 
-    void doBye(SipServletRequest req) throws ServletException, IOException;
+    void doBye(SipServletRequest req, SipServiceContext context);
 
-    void doCancel(SipServletRequest req) throws ServletException, IOException;
+    void doCancel(SipServletRequest req, SipServiceContext context);
 
-    void doErrorResponse(SipServletResponse resp) throws ServletException, IOException;
+    void doErrorResponse(SipServletResponse resp, SipServiceContext context);
 
-    void doInvite(SipServletRequest req) throws ServletException, IOException;
+    void doInvite(SipServletRequest req, SipServiceContext context);
 
-    void doProvisionalResponse(SipServletResponse resp) throws ServletException, IOException;
+    void doProvisionalResponse(SipServletResponse resp, SipServiceContext context);
 
-    void doRedirectResponse(SipServletResponse resp) throws ServletException, IOException ;
+    void doRedirectResponse(SipServletResponse resp, SipServiceContext context) ;
 
-    void doSubscribe(SipServletRequest req) throws ServletException, IOException;
+    void doSubscribe(SipServletRequest req, SipServiceContext context);
 
-    void doSuccessResponse(SipServletResponse resp) throws ServletException, IOException;
+    void doSuccessResponse(SipServletResponse resp, SipServiceContext context) throws IOException;
 
-    void doUpdate(SipServletRequest req) throws ServletException, IOException;
+    void doUpdate(SipServletRequest req, SipServiceContext context);
+
+    void noAckReceived(SipErrorEvent sipErrorEvent, SipServiceContext context);
+
+    void doTimeout();
 }

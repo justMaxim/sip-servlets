@@ -13,6 +13,10 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import javax.servlet.sip.*;
+
+import static javax.servlet.sip.SipServletResponse.SC_OK;
+
 /**
  * Created by Maksim on 24.05.2017.
  */
@@ -71,5 +75,36 @@ public class SimpleRegisterHelper implements Registrar {
     @Override
     public boolean deregisterUser(String primaryUserURI) {
         return dbAccessor.deleteAllBindings(primaryUserURI);
+    }
+
+    @Override
+    public SipServletResponse createRegisterSuccessResponse(SipServletRequest request)
+            throws SQLException, ServletParseException {
+
+        logger.info("Creating 200 Ok for success registration.");
+        String cleanToUri = request.getTo().getURI().toString();
+
+        SipServletResponse resp = request.createResponse(SC_OK, "Ok");
+        addContactHeaders(resp, getBindings(cleanToUri), CommonUtils.getSipFactory(resp));
+        resp.removeHeader(CommonUtils.SC_EXPIRES_HEADER);
+
+        return resp;
+    }
+
+    private void addContactHeaders(SipServletMessage message,
+                                   List<Binding> bindings,
+                                   SipFactory sipFactory) throws ServletParseException {
+        logger.info("Adding contact headers to the message:\n"
+                + message);
+        for (Binding binding:
+                bindings) {
+            logger.info("Binding: \n" + binding);
+            long expiresTime = binding.getDuration();
+            String contact = binding.getBindingURI();
+
+            Address contactAddress = sipFactory.createAddress(contact);
+            contactAddress.setExpires((int) expiresTime);
+            message.setAddressHeader(CommonUtils.SC_CONTACT_HEADER, contactAddress);
+        }
     }
 }

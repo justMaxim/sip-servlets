@@ -1,39 +1,52 @@
 package com.berinchik.sip.service.fsm;
 
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import com.berinchik.sip.config.ServiceConfig;
+import com.berinchik.sip.service.fsm.state.*;
+
+import javax.servlet.sip.SipErrorEvent;
 import javax.servlet.sip.SipFactory;
-import javax.servlet.sip.SipServlet;
+
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
-import java.io.IOException;
+
 
 /**
  * Created by Maksim on 26.05.2017.
  */
 public interface SipServiceContext {
 
-    void doAck(SipServletRequest req) throws ServletException, IOException;
+    void doAck(SipServletRequest req);
 
-    void doBye(SipServletRequest req) throws ServletException, IOException;
+    void doBye(SipServletRequest req);
 
-    void doCancel(SipServletRequest req) throws ServletException, IOException;
+    void doCancel(SipServletRequest req);
 
-    void doErrorResponse(SipServletResponse resp) throws ServletException, IOException;
+    void doErrorResponse(SipServletResponse resp);
 
-    void doInvite(SipServletRequest req) throws ServletException, IOException;
+    void doInvite(SipServletRequest req);
 
-    void doProvisionalResponse(SipServletResponse resp) throws ServletException, IOException;
+    void doProvisionalResponse(SipServletResponse resp);
 
-    void doRedirectResponse(SipServletResponse resp) throws ServletException, IOException ;
+    void doRedirectResponse(SipServletResponse resp);
 
-    void doSubscribe(SipServletRequest req) throws ServletException, IOException;
+    void doSubscribe(SipServletRequest req);
 
-    void doSuccessResponse(SipServletResponse resp) throws ServletException, IOException;
+    void doSuccessResponse(SipServletResponse resp);
 
-    void doUpdate(SipServletRequest req) throws ServletException, IOException;
+    void doUpdate(SipServletRequest req);
+
+    CallContext getCallContext();
+
+    void setCallContext(CallContext callContext);
+
+    SipServletRequest getInitialRequest();
 
     SipFactory getSipFactory();
+
+    void setState(SipServiceState state);
+
+    void noAckReceived(SipErrorEvent sipErrorEvent);
+
+    ServiceConfig getServiceConfig();
 
 }

@@ -1,7 +1,8 @@
-package com.berinchik.sip.service.fsm;
+package com.berinchik.sip.service.fsm.state;
+
+import com.berinchik.sip.service.fsm.SipServiceContext;
 
 import javax.servlet.ServletException;
-import javax.servlet.sip.SipFactory;
 import javax.servlet.sip.SipServletRequest;
 import javax.servlet.sip.SipServletResponse;
 import java.io.IOException;
@@ -9,16 +10,9 @@ import java.io.IOException;
 /**
  * Created by Maksim on 26.05.2017.
  */
-public class FlexibleCommunicationServiceContext implements SipServiceContext {
-
-    private SipFactory sipFactory;
-
-    public FlexibleCommunicationServiceContext(SipFactory sipFactory) {
-        this.sipFactory = sipFactory;
-    }
-
+public class FcsInitialState implements SipServiceState  {
     @Override
-    public void doAck(SipServletRequest req) throws ServletException, IOException {
+    public void doAck(SipServletRequest req, SipServiceContext context) throws ServletException, IOException {
 
     }
 
@@ -68,7 +62,7 @@ public class FlexibleCommunicationServiceContext implements SipServiceContext {
     }
 
     @Override
-    public SipFactory getSipFactory(){
-        return this.sipFactory;
+    public void doTimeout() {
+
     }
 }

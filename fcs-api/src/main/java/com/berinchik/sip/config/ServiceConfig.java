@@ -1,5 +1,8 @@
 package com.berinchik.sip.config;
 
+import com.berinchik.sip.config.rule.RuleSet;
+import com.berinchik.sip.config.target.Target;
+
 import java.util.List;
 
 /**
@@ -8,5 +11,7 @@ import java.util.List;
 public interface ServiceConfig {
     List<Target> getTargetList();
     int getDefaultPeriod();
-    List<Rule> getRuleset();
+    int getNoReplyTimer();
+    RuleSet getRuleSet();
+    String getTargetAddressByName(String name);
 }

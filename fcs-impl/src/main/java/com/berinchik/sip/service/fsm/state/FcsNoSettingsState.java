@@ -60,4 +60,9 @@ public class FcsNoSettingsState implements SipServiceState {
     public void doUpdate(SipServletRequest req) throws ServletException, IOException {
 
     }
+
+    @Override
+    public void doTimeout() {
+
+    }
 }

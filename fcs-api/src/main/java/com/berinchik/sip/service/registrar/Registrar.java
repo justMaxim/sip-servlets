@@ -3,6 +3,9 @@ package com.berinchik.sip.service.registrar;
 import org.json.JSONObject;
 import com.berinchik.sip.service.registrar.database.util.Binding;
 
+import javax.servlet.sip.ServletParseException;
+import javax.servlet.sip.SipServletRequest;
+import javax.servlet.sip.SipServletResponse;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -74,4 +77,15 @@ public interface Registrar {
      */
     public String isRegistered(String bindingAddress) throws SQLException;
 
+    /**
+     * Creates 200 Ok for success registration,
+     * with all contacts registered to the user,
+     *
+     * @param request
+     * @return
+     * @throws SQLException
+     * @throws ServletParseException
+     */
+    public SipServletResponse createRegisterSuccessResponse(SipServletRequest request)
+            throws SQLException, ServletParseException;
 }

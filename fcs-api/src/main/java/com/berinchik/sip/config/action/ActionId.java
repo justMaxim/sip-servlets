@@ -1,10 +1,9 @@
-package com.berinchik.sip.config;
+package com.berinchik.sip.config.action;
 
 /**
  * Created by Maksim on 24.05.2017.
  */
-public enum ACTION_ID {
-    FLEXIBLE,
+public enum ActionId {
     PARALLEL,
     SERIAL
 }

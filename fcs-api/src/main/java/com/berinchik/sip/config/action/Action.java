@@ -1,4 +1,6 @@
-package com.berinchik.sip.config;
+package com.berinchik.sip.config.action;
+
+import com.berinchik.sip.config.target.Target;
 
 import java.util.List;
 
@@ -6,6 +8,6 @@ import java.util.List;
  * Created by Maksim on 24.05.2017.
  */
 public interface Action {
-    ACTION_ID getActionId();
+    ActionId getActionId();
     List<Target> getTargets();
 }

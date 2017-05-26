@@ -20,8 +20,6 @@ import java.io.IOException;
 
 import java.sql.SQLException;
 
-import java.util.Iterator;
-import java.util.List;
 import java.util.ListIterator;
 
 import javax.annotation.Resource;
@@ -31,10 +29,9 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.sip.*;
 
-import com.berinchik.sip.service.fsm.FlexibleCommunicationServiceContext;
+import com.berinchik.sip.service.fsm.FcsServiceContext;
 import com.berinchik.sip.service.registrar.Registrar;
 import com.berinchik.sip.service.registrar.SimpleRegisterHelper;
-import com.berinchik.sip.service.registrar.database.util.Binding;
 
 import com.berinchik.sip.util.CommonUtils;
 import org.apache.commons.logging.Log;
@@ -48,11 +45,9 @@ import static javax.servlet.sip.SipServletResponse.*;
  * @author Jean Deruelle
  *
  */
-public class FlexibleCommunicationServlet extends SipServlet {
+public class FlexibleCommunicationServlet extends SipServlet implements SipErrorListener {
 
 	private static final String SC_DATABASE_ACCESS = "DatabaseAccess";
-
-
 
 	private static Log logger = LogFactory.getLog(FlexibleCommunicationServlet.class);
 
@@ -69,7 +64,7 @@ public class FlexibleCommunicationServlet extends SipServlet {
 	public void service(ServletRequest req, ServletResponse resp) throws ServletException, IOException{
 
 		try {
-			addUtilAttributesToAppSession(getAppSession((SipServletMessage)req, (SipServletMessage)resp));
+			addUtilAttributesToAppSession(CommonUtils.getAppSession((SipServletMessage)req, (SipServletMessage)resp));
 		}
 		catch (SQLException ex) {
 			logger.error("Unable to connect data source", ex);
@@ -88,9 +83,9 @@ public class FlexibleCommunicationServlet extends SipServlet {
 				+ request.toString());
 		String fromUri = request.getFrom().getURI().toString();
 		logger.info(fromUri);
-		
-		SipServletResponse sipServletResponse = request.createResponse(SC_OK);
-		sipServletResponse.send();		
+
+		CommonUtils.getSipServiceContext(request).doInvite(request);
+
 	}
 
 	@Override
@@ -105,7 +100,6 @@ public class FlexibleCommunicationServlet extends SipServlet {
 		Registrar registrar = CommonUtils.getRegistrarHelper(request);
 
 		URI toURI = request.getTo().getURI();
-		//String cleanToURI = cleanUri(toAddress);
 
 		ListIterator<Address> contacts = request.getAddressHeaders(CommonUtils.SC_CONTACT_HEADER);
 
@@ -134,7 +128,7 @@ public class FlexibleCommunicationServlet extends SipServlet {
 						+ toURI
 						+ "\nReturning all bindings");
 
-				resp = create200OkWithAllBindings(request, registrar);
+				resp = registrar.createRegisterSuccessResponse(request);
 			}
 			else if (firstContact.isWildcard()) {
 				logger.info("First contact is Wildcard");
@@ -168,12 +162,12 @@ public class FlexibleCommunicationServlet extends SipServlet {
 							+ " to user "
 							+ toURI);
 
-					int expires = getExpires(nextContact, request);
+					int expires = CommonUtils.getExpires(nextContact, request);
 
 					registrar.registerUser(toURI.toString(), nextContact.getURI().toString(), expires);
 				}
 
-				resp = create200OkWithAllBindings(request, registrar);
+				resp = registrar.createRegisterSuccessResponse(request);
 			}
 		} catch (SQLException e) {
 			logger.error("SQL Exception durin registration", e);
@@ -195,93 +189,14 @@ public class FlexibleCommunicationServlet extends SipServlet {
 		sipServletResponse.send();	
 	}
 
-	private SipApplicationSession getAppSession(SipServletMessage message1, SipServletMessage message2) {
-
-		SipApplicationSession appSession = null;
-
-		if (message1 != null)
-			appSession = message1.getApplicationSession();
-		else if (message2 != null)
-			appSession = message2.getApplicationSession();
-
-		return appSession;
-	}
-
-	private SipApplicationSession getAppSession(SipServletMessage message) {
-
-		SipApplicationSession appSession = null;
-
-		if (message != null)
-			appSession = message.getApplicationSession();
-
-		return appSession;
-	}
-
 	private void addUtilAttributesToAppSession(SipApplicationSession appSession) throws SQLException{
 		if (appSession.getAttribute(CommonUtils.SC_REGISTER_HELPER) == null) {
 			appSession.setAttribute(CommonUtils.SC_REGISTER_HELPER, new SimpleRegisterHelper());
 		}
 		if (appSession.getAttribute(CommonUtils.SC_FLEX_COMM_SERVICE_CONTEXT) == null) {
 			appSession.setAttribute(CommonUtils.SC_FLEX_COMM_SERVICE_CONTEXT,
-					new FlexibleCommunicationServiceContext(this.sipFactory));
+					new FcsServiceContext(this.sipFactory));
 		}
-	}
-
-	String cleanUri(URI uri) {
-		Iterator<String> parameterNames = uri.getParameterNames();
-		String parameter = null;
-		while ( parameterNames.hasNext()) {
-			uri.removeParameter(parameter);
-		}
-		return uri.toString();
-	}
-
-	String cleanUri(Address address) {
-		return cleanUri(address.getURI());
-	}
-
-	/**
-	 * Adds all contacts from List bindings to message, with expires to every contact
-	 *
-	 * @param message SipServletMessage
-	 * @param bindings List of Binding
-	 * @throws ServletParseException
-	 */
-	private void addContactHeaders(SipServletMessage message, List<Binding> bindings) throws ServletParseException {
-		logger.info("Adding contact headers to the message:\n"
-				+ message);
-		for (Binding binding:
-			 bindings) {
-			logger.info("Binding: \n" + binding);
-			long expiresTime = binding.getDuration();
-			String contact = binding.getBindingURI();
-
-			Address contactAddress = sipFactory.createAddress(contact);
-			contactAddress.setExpires((int) expiresTime);
-			message.setAddressHeader(CommonUtils.SC_CONTACT_HEADER, contactAddress);
-		}
-	}
-
-	private SipServletResponse create200OkWithAllBindings(SipServletRequest request, Registrar registrar)
-			throws SQLException, ServletParseException {
-
-		logger.info("Creating 200 Ok for success registration.");
-		String cleanToUri = request.getTo().getURI().toString();
-
-		SipServletResponse resp = request.createResponse(SC_OK, "Ok");
-		addContactHeaders(resp, registrar.getBindings(cleanToUri));
-		resp.removeHeader(CommonUtils.SC_EXPIRES_HEADER);
-
-		return resp;
-	}
-
-	int getExpires(Address contact, SipServletMessage message) {
-		int expires = contact.getExpires();
-		if (expires < 0) {
-			expires = message.getExpires();
-		}
-
-		return expires;
 	}
 
 	void logMessageInfo(SipServletMessage message) throws ServletParseException {
@@ -308,5 +223,15 @@ public class FlexibleCommunicationServlet extends SipServlet {
 				+ "\ntoAddress.getValue(): " + toAddress.getValue()
 				+ "\ntoAddress.getQ: " + toAddress.getQ()
 		);
+	}
+
+	@Override
+	public void noAckReceived(SipErrorEvent sipErrorEvent) {
+		CommonUtils.getSipServiceContext(sipErrorEvent.getRequest()).noAckReceived(sipErrorEvent);
+	}
+
+	@Override
+	public void noPrackReceived(SipErrorEvent sipErrorEvent) {
+
 	}
 }
