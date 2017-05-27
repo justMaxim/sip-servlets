@@ -91,6 +91,14 @@ public class SimpleRegisterHelper implements Registrar {
         return resp;
     }
 
+    @Override
+    public String getPrimaryUserId(String request) throws SQLException {
+        if(isPrimary(request)) {
+            return request;
+        }
+        return isRegistered(request);
+    }
+
     private void addContactHeaders(SipServletMessage message,
                                    List<Binding> bindings,
                                    SipFactory sipFactory) throws ServletParseException {
@@ -107,4 +115,6 @@ public class SimpleRegisterHelper implements Registrar {
             message.setAddressHeader(CommonUtils.SC_CONTACT_HEADER, contactAddress);
         }
     }
+
+
 }

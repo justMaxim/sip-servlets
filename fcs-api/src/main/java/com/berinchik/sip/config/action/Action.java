@@ -1,6 +1,6 @@
 package com.berinchik.sip.config.action;
 
-import com.berinchik.sip.config.target.Target;
+import com.berinchik.sip.config.target.ActionTarget;
 
 import java.util.List;
 
@@ -9,5 +9,8 @@ import java.util.List;
  */
 public interface Action {
     ActionId getActionId();
-    List<Target> getTargets();
+    int getPeriod();
+    List<ActionTarget> getTargets();
+    ActionTarget getNextTarget();
+    ActionTarget getCurrentTarget();
 }

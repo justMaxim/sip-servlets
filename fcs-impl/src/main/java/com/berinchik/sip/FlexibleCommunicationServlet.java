@@ -28,6 +28,7 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.sip.*;
+import javax.servlet.sip.annotation.SipListener;
 
 import com.berinchik.sip.service.fsm.FcsServiceContext;
 import com.berinchik.sip.service.registrar.Registrar;
@@ -45,6 +46,7 @@ import static javax.servlet.sip.SipServletResponse.*;
  * @author Jean Deruelle
  *
  */
+@SipListener
 public class FlexibleCommunicationServlet extends SipServlet implements SipErrorListener {
 
 	private static final String SC_DATABASE_ACCESS = "DatabaseAccess";
@@ -84,7 +86,13 @@ public class FlexibleCommunicationServlet extends SipServlet implements SipError
 		String fromUri = request.getFrom().getURI().toString();
 		logger.info(fromUri);
 
-		CommonUtils.getSipServiceContext(request).doInvite(request);
+		try {
+			CommonUtils.getSipServiceContext(request).doInvite(request);
+		} catch (SQLException e) {
+			logger.info("Service context error", e);
+			request.createResponse(SC_SERVER_INTERNAL_ERROR, "Server internal error");
+		}
+
 
 	}
 
@@ -197,6 +205,9 @@ public class FlexibleCommunicationServlet extends SipServlet implements SipError
 			appSession.setAttribute(CommonUtils.SC_FLEX_COMM_SERVICE_CONTEXT,
 					new FcsServiceContext(this.sipFactory));
 		}
+		if (CommonUtils.getTimerService() == null) {
+			CommonUtils.setTimerService((TimerService) getServletContext().getAttribute(TIMER_SERVICE));
+		}
 	}
 
 	void logMessageInfo(SipServletMessage message) throws ServletParseException {
@@ -233,5 +244,9 @@ public class FlexibleCommunicationServlet extends SipServlet implements SipError
 	@Override
 	public void noPrackReceived(SipErrorEvent sipErrorEvent) {
 
+	}
+
+	void timeout(ServletTimer timer) {
+		CommonUtils.getSipServiceContext(timer.getApplicationSession()).doTimeout(timer);
 	}
 }

@@ -1,12 +1,10 @@
 package com.berinchik.sip.util;
 
+import com.berinchik.sip.config.condition.Condition;
 import com.berinchik.sip.service.fsm.SipServiceContext;
 import com.berinchik.sip.service.registrar.Registrar;
 
-import javax.servlet.sip.Address;
-import javax.servlet.sip.SipApplicationSession;
-import javax.servlet.sip.SipFactory;
-import javax.servlet.sip.SipServletMessage;
+import javax.servlet.sip.*;
 
 /**
  * Created by Maksim on 26.05.2017.
@@ -17,9 +15,12 @@ public class CommonUtils {
     public static final String SC_REGISTER_HELPER = "RegisterHelper";
     public static final String SC_FLEX_COMM_SERVICE_CONTEXT = "FcsServiceContext";
     public static final String SC_SIP_FACTORY = "SipFactory";
+    public static final String SC_TIMER_SERVICE = "TimerService";
 
     public static final String SC_CONTACT_HEADER = "Contact";
     public static final String SC_EXPIRES_HEADER = "Expires";
+
+    private static TimerService timerService;
 
     public static long getCurrentTimestampInSeconds() {
         return System.currentTimeMillis() / 1000;
@@ -43,6 +44,14 @@ public class CommonUtils {
 
     public static SipFactory getSipFactory(SipServletMessage message) {
         return getSipFactory(message.getApplicationSession());
+    }
+
+    public static void setTimerService(TimerService tService) {
+        timerService = tService;
+    }
+
+    public static TimerService getTimerService() {
+        return timerService;
     }
 
     public static SipFactory getSipFactory(SipApplicationSession appSession) {
@@ -78,5 +87,10 @@ public class CommonUtils {
             appSession = message.getApplicationSession();
 
         return appSession;
+    }
+
+    public static boolean matchDateCondition(Condition condition) {
+        //TODO: implement date condition check;
+        return true;
     }
 }

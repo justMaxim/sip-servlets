@@ -2,16 +2,14 @@ package com.berinchik.sip.service.fsm.state;
 
 import com.berinchik.sip.service.fsm.SipServiceContext;
 
-import javax.servlet.ServletException;
 import javax.servlet.sip.*;
 import java.io.IOException;
 import java.sql.SQLException;
 
 /**
- * Created by Maksim on 26.05.2017.
+ * Created by Maksim on 27.05.2017.
  */
-public class FcsNoSettingsState implements SipServiceState {
-
+public class FcsNoRulesMatchState implements SipServiceState {
     @Override
     public void doAck(SipServletRequest req, SipServiceContext context) {
 

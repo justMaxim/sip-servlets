@@ -88,4 +88,6 @@ public interface Registrar {
      */
     public SipServletResponse createRegisterSuccessResponse(SipServletRequest request)
             throws SQLException, ServletParseException;
+
+    public String getPrimaryUserId(String request) throws SQLException;
 }

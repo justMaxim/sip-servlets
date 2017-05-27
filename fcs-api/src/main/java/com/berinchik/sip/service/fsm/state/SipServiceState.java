@@ -2,10 +2,9 @@ package com.berinchik.sip.service.fsm.state;
 
 import com.berinchik.sip.service.fsm.SipServiceContext;
 
-import javax.servlet.sip.SipErrorEvent;
-import javax.servlet.sip.SipServletRequest;
-import javax.servlet.sip.SipServletResponse;
+import javax.servlet.sip.*;
 import java.io.IOException;
+import java.sql.SQLException;
 
 /**
  * Created by Maksim on 26.05.2017.
@@ -19,7 +18,7 @@ public interface SipServiceState {
 
     void doErrorResponse(SipServletResponse resp, SipServiceContext context);
 
-    void doInvite(SipServletRequest req, SipServiceContext context);
+    void doInvite(SipServletRequest req, SipServiceContext context) throws SQLException, IOException, ServletParseException;
 
     void doProvisionalResponse(SipServletResponse resp, SipServiceContext context);
 
@@ -33,5 +32,5 @@ public interface SipServiceState {
 
     void noAckReceived(SipErrorEvent sipErrorEvent, SipServiceContext context);
 
-    void doTimeout();
+    void doTimeout(ServletTimer timer, SipServiceContext context);
 }

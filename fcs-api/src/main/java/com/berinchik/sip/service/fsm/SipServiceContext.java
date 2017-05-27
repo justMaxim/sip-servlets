@@ -1,13 +1,18 @@
 package com.berinchik.sip.service.fsm;
 
 import com.berinchik.sip.config.ServiceConfig;
+import com.berinchik.sip.config.action.Action;
+import com.berinchik.sip.config.action.ActionSet;
+import com.berinchik.sip.config.rule.Rule;
+import com.berinchik.sip.config.target.ActionTarget;
 import com.berinchik.sip.service.fsm.state.*;
+import org.json.JSONObject;
 
-import javax.servlet.sip.SipErrorEvent;
-import javax.servlet.sip.SipFactory;
+import javax.servlet.sip.*;
 
-import javax.servlet.sip.SipServletRequest;
-import javax.servlet.sip.SipServletResponse;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.List;
 
 
 /**
@@ -23,7 +28,7 @@ public interface SipServiceContext {
 
     void doErrorResponse(SipServletResponse resp);
 
-    void doInvite(SipServletRequest req);
+    void doInvite(SipServletRequest req) throws SQLException, IOException, ServletParseException;
 
     void doProvisionalResponse(SipServletResponse resp);
 
@@ -43,10 +48,34 @@ public interface SipServiceContext {
 
     SipFactory getSipFactory();
 
+    void setActionSet(ActionSet actionSet);
+
+    Action getCurrentAction();
+
+    Action getNextAction();
+
     void setState(SipServiceState state);
+
+    void setUserSettings(JSONObject settings);
+
+    ServiceConfig getUserSettings();
+
+    void setMatchedRule(Rule rule);
+
+    Rule getMatchedRule();
 
     void noAckReceived(SipErrorEvent sipErrorEvent);
 
-    ServiceConfig getServiceConfig();
+    void doParallel() throws IOException, ServletParseException;
+
+    void doSerial() throws ServletParseException, IOException;
+
+    public void doRejectInvite(int code, String message) throws IOException;
+
+    public void doForwardInvite(String primaryUser) throws SQLException, ServletParseException, IOException;
+
+    ServiceConfig getServiceConfig() throws IOException ;
+
+    void doTimeout(ServletTimer timer);
 
 }
