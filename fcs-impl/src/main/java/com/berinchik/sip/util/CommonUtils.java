@@ -10,6 +10,7 @@ import javax.servlet.sip.*;
  * Created by Maksim on 26.05.2017.
  */
 public class CommonUtils {
+
     private CommonUtils() { }
 
     public static final String SC_REGISTER_HELPER = "RegisterHelper";
@@ -18,6 +19,7 @@ public class CommonUtils {
     public static final String SC_TIMER_SERVICE = "TimerService";
 
     public static final String SC_CONTACT_HEADER = "Contact";
+    public static final String SC_TO_HEADER = "To";
     public static final String SC_EXPIRES_HEADER = "Expires";
 
     private static TimerService timerService;

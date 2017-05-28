@@ -1,6 +1,6 @@
 package com.berinchik.sip.config;
 
-import com.berinchik.sip.config.error.ServiceInactiveException;
+import com.berinchik.sip.error.ServiceInactiveException;
 import com.berinchik.sip.config.rule.FcsServiceRuleSet;
 import com.berinchik.sip.config.rule.RuleSet;
 import com.berinchik.sip.config.target.ActionTarget;

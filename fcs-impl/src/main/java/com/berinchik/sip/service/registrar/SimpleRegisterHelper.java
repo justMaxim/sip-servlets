@@ -1,5 +1,6 @@
 package com.berinchik.sip.service.registrar;
 
+import com.berinchik.sip.error.FcsUnexpectedException;
 import com.berinchik.sip.service.registrar.database.DatabaseAccessor;
 import com.berinchik.sip.service.registrar.database.SimpleDatabaseAccessor;
 import com.berinchik.sip.service.registrar.database.util.Binding;
@@ -63,8 +64,17 @@ public class SimpleRegisterHelper implements Registrar {
     }
 
     @Override
-    public List<Binding> getBindings(String primaryUserURI) throws SQLException{
-        return dbAccessor.getUserBindings(primaryUserURI);
+    public List<Binding> getBindings(String userURI) throws SQLException{
+        if (dbAccessor.userIsPrimary(userURI)) {
+            return dbAccessor.getUserBindings(userURI);
+        }
+        else {
+            String primaryUser = dbAccessor.isUserRegistered(userURI);
+            if (primaryUser != null) {
+                return dbAccessor.getUserBindings(primaryUser);
+            }
+        }
+        return null;
     }
 
     @Override
@@ -104,6 +114,10 @@ public class SimpleRegisterHelper implements Registrar {
                                    SipFactory sipFactory) throws ServletParseException {
         logger.info("Adding contact headers to the message:\n"
                 + message);
+        if (bindings == null) {
+            throw new FcsUnexpectedException("Registration should be complete, but there are no bindings");
+        }
+
         for (Binding binding:
                 bindings) {
             logger.info("Binding: \n" + binding);

@@ -2,7 +2,7 @@ package com.berinchik.sip.config.condition;
 
 import static com.berinchik.sip.config.FcsServiceConfig.*;
 
-import com.berinchik.sip.config.error.UnsupportedConditionException;
+import com.berinchik.sip.error.UnsupportedConditionException;
 import org.json.JSONObject;
 
 /**

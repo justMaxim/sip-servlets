@@ -4,7 +4,6 @@ import com.berinchik.sip.config.ServiceConfig;
 import com.berinchik.sip.config.action.Action;
 import com.berinchik.sip.config.action.ActionSet;
 import com.berinchik.sip.config.rule.Rule;
-import com.berinchik.sip.config.target.ActionTarget;
 import com.berinchik.sip.service.fsm.state.*;
 import org.json.JSONObject;
 import org.mobicents.media.server.io.sdp.SdpException;
@@ -13,7 +12,6 @@ import javax.servlet.sip.*;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.List;
 
 
 /**
@@ -67,13 +65,17 @@ public interface SipServiceContext {
 
     void noAckReceived(SipErrorEvent sipErrorEvent);
 
-    void doParallel() throws IOException, ServletParseException;
+    void doParallel() throws IOException, ServletParseException, SQLException;
 
     void doSerial() throws ServletParseException, IOException;
 
+    boolean isRingingTimer(ServletTimer timer);
+
+    boolean isNotReachableTimer(ServletTimer timer);
+
     public void doRejectInvite(int code, String message) throws IOException;
 
-    public void doForwardInvite(String primaryUser) throws SQLException, ServletParseException, IOException;
+    public boolean sendInvite(String primaryUser) throws SQLException, ServletParseException, IOException;
 
     ServiceConfig getServiceConfig() throws IOException ;
 
@@ -83,9 +85,11 @@ public interface SipServiceContext {
 
     void cancelRingingTimer();
 
-    void doTimeout(ServletTimer timer);
+    void doTimeout(ServletTimer timer) throws IOException;
 
     void sendSuccess(SipServletResponse resp) throws IOException, SdpException;
 
     void forwardBye(SipServletRequest receivedByeRequest) throws IOException, ServletParseException;
+
+    boolean isRingingSent();
 }

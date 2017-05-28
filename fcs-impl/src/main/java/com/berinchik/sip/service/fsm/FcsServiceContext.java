@@ -39,17 +39,14 @@ public class FcsServiceContext implements SipServiceContext {
     private Rule matchedRule;
     private ActionSet actionSet;
     private Action currentAction;
-    private ServletTimer notReachable;
+    private ServletTimer notReachableTimer;
     private ServletTimer ringingTimer;
-
-    private boolean ringingSent = false;
 
     private int defaultRinginPeriod = 10;
     private int defaultNotReachablePeriod = 10;
 
     public FcsServiceContext(SipFactory sipFactory) {
         this.sipFactory = sipFactory;
-
     }
 
     @Override
@@ -106,7 +103,7 @@ public class FcsServiceContext implements SipServiceContext {
     @Override
     public synchronized void doSuccessResponse(SipServletResponse resp) throws IOException, SdpException {
         messageAndStateInfo(resp);
-        ringingTimer.cancel();
+        cancelRingingTimer();
         serviceState.doSuccessResponse(resp, this);
     }
 
@@ -169,15 +166,23 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public void doParallel() throws IOException, ServletParseException {
+    public void doParallel() throws IOException, ServletParseException, SQLException {
         long ringingPeriod = currentAction.getPeriod();
         List<URI> uris = getTargetAddresses(currentAction.getTargets());
+        boolean atLeastOneRequestSent = false;
         for (URI uri :
                 uris) {
-            callContext.createRequest("INVITE", uri, this).send();
+            List<Binding> bindings
+                    = CommonUtils.getRegistrarHelper(getInitialRequest()).getBindings(uri.toString());
+            if (bindings != null) {
+                callContext.createRequest("INVITE", uri, this).send();
+            }
+
+
         }
+
         //Set timer
-        notReachable
+        notReachableTimer
                 = CommonUtils.getTimerService().createTimer(
                 callContext.getApplicationSession(),
                 ringingPeriod * 1000,
@@ -200,12 +205,28 @@ public class FcsServiceContext implements SipServiceContext {
         callContext.createRequest("INVITE", uri, this).send();
 
         //Set timer
-        notReachable
+        notReachableTimer
                 = CommonUtils.getTimerService().createTimer(
                 callContext.getApplicationSession(),
                 ringingPeriod * 1000,
                 false,
                 null);
+    }
+
+    @Override
+    public boolean isRingingTimer(ServletTimer timer) {
+        if (timer.equals(ringingTimer)) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isNotReachableTimer(ServletTimer timer) {
+        if (timer.equals(notReachableTimer)) {
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -218,19 +239,27 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public void doForwardInvite(String primaryUser) throws SQLException, ServletParseException, IOException {
+    public boolean sendInvite(String primaryUser) throws SQLException, ServletParseException, IOException {
         Registrar registrar = CommonUtils.getRegistrarHelper(getInitialRequest());
         List<Binding> bindings = registrar.getBindings(primaryUser);
+
+        if (bindings == null) {
+            logger.info("No bindings");
+            return false;
+        }
+
         URI requestUri = getSipFactory().createURI(bindings.get(0).getBindingURI());
 
         callContext.createRequest("INVITE", requestUri, this).send();
 
-        notReachable
+        notReachableTimer
                 = CommonUtils.getTimerService().createTimer(
                 callContext.getApplicationSession(),
                 defaultNotReachablePeriod * 1000,
                 false,
                 null);
+
+        return true;
     }
 
     @Override
@@ -256,7 +285,13 @@ public class FcsServiceContext implements SipServiceContext {
 
     @Override
     public void cancelNotReachableTimer() {
-        notReachable.cancel();
+        if (notReachableTimer != null) {
+            notReachableTimer.cancel();
+        }
+        else {
+            logger.warn("Trying to cancel not reachable timer, which is NULL");
+        }
+
     }
 
     @Override
@@ -270,13 +305,22 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public void cancelRingingTimer() {
-        ringingTimer.cancel();
+    public boolean isRingingSent() {
+        return callContext.isRingingSent();
     }
 
+    @Override
+    public void cancelRingingTimer() {
+        if (ringingTimer != null){
+            ringingTimer.cancel();
+        }
+        else {
+            logger.warn("Trying to cancel not ringing timer, which is NULL");
+        }
+    }
 
     @Override
-    public synchronized void doTimeout(ServletTimer timer) {
+    public synchronized void doTimeout(ServletTimer timer) throws IOException {
         serviceState.doTimeout(timer, this);
     }
 

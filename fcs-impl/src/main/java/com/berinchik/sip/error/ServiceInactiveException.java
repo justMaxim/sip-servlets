@@ -1,4 +1,4 @@
-package com.berinchik.sip.config.error;
+package com.berinchik.sip.error;
 
 /**
  * Created by Maksim on 26.05.2017.

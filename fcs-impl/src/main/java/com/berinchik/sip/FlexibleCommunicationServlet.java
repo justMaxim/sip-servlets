@@ -52,8 +52,35 @@ public class FlexibleCommunicationServlet
 		extends SipServlet implements SipErrorListener, TimerListener {
 
 	private static final String SC_DATABASE_ACCESS = "DatabaseAccess";
+	private static final String SC_LOCAL_SERVER_PORT = "5080";
 
 	private static Log logger = LogFactory.getLog(FlexibleCommunicationServlet.class);
+
+	private void normaliseInviteRequest(SipServletRequest request) throws ServletParseException {
+		String stringRequestURI = removeLocalServerPortFromURI(request.getRequestURI());
+		String stringToUri = removeLocalServerPortFromURI(request.getTo().getURI());
+
+		request.setRequestURI(sipFactory.createURI(stringRequestURI));
+		request.getTo().setURI(sipFactory.createURI(stringToUri));
+
+	}
+
+	private void normaliseRegisterRequest(SipServletRequest request) throws ServletParseException {
+		String stringToUri = removeLocalServerPortFromURI(request.getTo().getURI());
+		request.getTo().setURI(sipFactory.createURI(stringToUri));
+	}
+
+	private String removeLocalServerPortFromURI(URI uri) {
+
+		String stringURI = uri.toString();
+
+		if(stringURI.contains(":" + SC_LOCAL_SERVER_PORT)) {
+			stringURI
+					= stringURI.replaceFirst(":" + SC_LOCAL_SERVER_PORT, "");
+		}
+
+		return stringURI;
+	}
 
 	@Resource
 	private SipFactory sipFactory;
@@ -83,10 +110,12 @@ public class FlexibleCommunicationServlet
 	protected void doInvite(SipServletRequest request) throws ServletException,
 			IOException {
 
-		logger.info("Got request:\n"
-				+ request.toString());
-		String fromUri = request.getFrom().getURI().toString();
-		logger.info(fromUri);
+
+		logger.info("INVITE before normalisation:\n"
+				+ request);
+		normaliseInviteRequest(request);
+		logger.info("INVITE after normalisation:\n"
+				+ request);
 
 		try {
 			request.createResponse(SC_TRYING, "Trying");
@@ -142,8 +171,9 @@ public class FlexibleCommunicationServlet
 			IOException {
 
 		logger.info("Got REGISTER:\n"
-				+ request.toString());
-
+				+ request);
+		normaliseRegisterRequest(request);
+		logger.info("normalisation performed");
 		logMessageInfo(request);
 
 		Registrar registrar = CommonUtils.getRegistrarHelper(request);
@@ -238,12 +268,16 @@ public class FlexibleCommunicationServlet
 
 	@Override
 	public void noPrackReceived(SipErrorEvent sipErrorEvent) {
-
+		throw new UnsupportedOperationException("No prack supported");
 	}
 
 	public void timeout(ServletTimer timer) {
 		logger.info("Timeout received" + timer);
-		CommonUtils.getSipServiceContext(timer.getApplicationSession()).doTimeout(timer);
+		try {
+			CommonUtils.getSipServiceContext(timer.getApplicationSession()).doTimeout(timer);
+		} catch (IOException e) {
+			logger.error("Error while processing timeout", e);
+		}
 	}
 
 	private void addUtilAttributesToAppSession(SipApplicationSession appSession) throws SQLException{

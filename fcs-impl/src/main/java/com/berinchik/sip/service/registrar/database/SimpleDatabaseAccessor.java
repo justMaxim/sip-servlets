@@ -272,7 +272,10 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
             closeSqlResource(userInfoResultSet);
         }
 
-        return bindings;
+        if (bindings.isEmpty())
+            return null;
+        else
+            return bindings;
     }
 
 }

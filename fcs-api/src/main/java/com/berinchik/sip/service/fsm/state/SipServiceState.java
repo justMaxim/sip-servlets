@@ -33,5 +33,5 @@ public interface SipServiceState {
 
     void noAckReceived(SipErrorEvent sipErrorEvent, SipServiceContext context);
 
-    void doTimeout(ServletTimer timer, SipServiceContext context);
+    void doTimeout(ServletTimer timer, SipServiceContext context) throws IOException;
 }

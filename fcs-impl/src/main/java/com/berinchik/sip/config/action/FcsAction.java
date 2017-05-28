@@ -1,11 +1,11 @@
 package com.berinchik.sip.config.action;
 
-import com.berinchik.sip.config.error.ActionTypeParseException;
-import com.berinchik.sip.config.error.FcsUnexpectedException;
+import com.berinchik.sip.error.ActionTypeParseException;
+import com.berinchik.sip.error.FcsUnexpectedException;
 import com.berinchik.sip.config.target.ActionTarget;
 import com.berinchik.sip.config.target.FcsParallelRingingTarget;
 import com.berinchik.sip.config.target.FcsSerialRingingTarget;
-import com.berinchik.sip.config.target.ServiceTarget;
+
 import static com.berinchik.sip.config.FcsServiceConfig.*;
 
 import org.json.JSONArray;

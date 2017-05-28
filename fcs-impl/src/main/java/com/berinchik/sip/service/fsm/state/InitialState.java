@@ -4,7 +4,7 @@ import com.berinchik.sip.config.ServiceConfig;
 import com.berinchik.sip.config.action.Action;
 import com.berinchik.sip.config.action.ActionSet;
 import com.berinchik.sip.config.condition.Condition;
-import com.berinchik.sip.config.error.FcsUnexpectedException;
+import com.berinchik.sip.error.FcsUnexpectedException;
 import com.berinchik.sip.config.rule.Rule;
 import com.berinchik.sip.service.fsm.SipServiceContext;
 import com.berinchik.sip.service.registrar.Registrar;
@@ -86,7 +86,12 @@ public class InitialState implements SipServiceState  {
 
                 matchedRule = matchRulesAtInitialInvite(rulesList);
 
-                if (matchedRule != null) {
+                if (matchedRule == null) {
+                    if (context.sendInvite(primaryUserIdentity)) {
+                        nextState = new NoRulesMatchState();
+                    }
+                }
+                else {
                     context.setMatchedRule(matchedRule);
                     serviceActionSet = matchedRule.getActionSet();
                     context.setActionSet(serviceActionSet);
@@ -94,25 +99,25 @@ public class InitialState implements SipServiceState  {
                     Action currentAction = context.getCurrentAction();
                     nextState = performAction(currentAction, context);
                 }
-                else {
-                    context.doForwardInvite(primaryUserIdentity);
-                    nextState = new NoRulesMatchState();
-                }
 
             }
             else {
-                context.doForwardInvite(primaryUserIdentity);
-                nextState = new InviteForwardedAtNoSettingsState();
                 logger.info("No service config found for user: " + reqUriString);
+                if(context.sendInvite(primaryUserIdentity)){
+                    nextState = new InviteForwardedAtNoSettingsState();
+                }
+                else {
+                    context.doRejectInvite(SC_TEMPORARILY_UNAVAILABLE, "Temporarily unavailable");
+                    nextState = new InviteCanceledState();
+                }
             }
-
         }
         context.setState(nextState);
 
     }
 
     private SipServiceState performAction(Action action, SipServiceContext context)
-            throws IOException, ServletParseException {
+            throws IOException, ServletParseException, SQLException {
         switch(action.getActionId()) {
             case PARALLEL:
                 context.doParallel();
