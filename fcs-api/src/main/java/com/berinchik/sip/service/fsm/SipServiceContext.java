@@ -7,6 +7,7 @@ import com.berinchik.sip.config.rule.Rule;
 import com.berinchik.sip.config.target.ActionTarget;
 import com.berinchik.sip.service.fsm.state.*;
 import org.json.JSONObject;
+import org.mobicents.media.server.io.sdp.SdpException;
 
 import javax.servlet.sip.*;
 
@@ -20,23 +21,23 @@ import java.util.List;
  */
 public interface SipServiceContext {
 
-    void doAck(SipServletRequest req);
+    void doAck(SipServletRequest req) throws IOException;
 
-    void doBye(SipServletRequest req);
+    void doBye(SipServletRequest req) throws IOException, ServletParseException;
 
-    void doCancel(SipServletRequest req);
+    void doCancel(SipServletRequest req) throws IOException;
 
-    void doErrorResponse(SipServletResponse resp);
+    void doErrorResponse(SipServletResponse resp) throws IOException;
 
     void doInvite(SipServletRequest req) throws SQLException, IOException, ServletParseException;
 
-    void doProvisionalResponse(SipServletResponse resp);
+    void doProvisionalResponse(SipServletResponse resp) throws IOException;
 
     void doRedirectResponse(SipServletResponse resp);
 
     void doSubscribe(SipServletRequest req);
 
-    void doSuccessResponse(SipServletResponse resp);
+    void doSuccessResponse(SipServletResponse resp) throws IOException, SdpException;
 
     void doUpdate(SipServletRequest req);
 
@@ -76,6 +77,15 @@ public interface SipServiceContext {
 
     ServiceConfig getServiceConfig() throws IOException ;
 
+    void cancelNotReachableTimer();
+
+    void startRingingTimer();
+
+    void cancelRingingTimer();
+
     void doTimeout(ServletTimer timer);
 
+    void sendSuccess(SipServletResponse resp) throws IOException, SdpException;
+
+    void forwardBye(SipServletRequest receivedByeRequest) throws IOException, ServletParseException;
 }

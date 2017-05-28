@@ -110,6 +110,10 @@ public class SimpleRegisterHelper implements Registrar {
             long expiresTime = binding.getDuration();
             String contact = binding.getBindingURI();
 
+            if (sipFactory == null) {
+                logger.info("sipFactory == null");
+            }
+
             Address contactAddress = sipFactory.createAddress(contact);
             contactAddress.setExpires((int) expiresTime);
             message.setAddressHeader(CommonUtils.SC_CONTACT_HEADER, contactAddress);

@@ -6,14 +6,16 @@ import com.berinchik.sip.config.action.Action;
 import com.berinchik.sip.config.action.ActionSet;
 import com.berinchik.sip.config.rule.Rule;
 import com.berinchik.sip.config.target.ActionTarget;
-import com.berinchik.sip.service.fsm.state.FcsInitialState;
+import com.berinchik.sip.service.fsm.state.InitialState;
 import com.berinchik.sip.service.fsm.state.SipServiceState;
 import com.berinchik.sip.service.registrar.Registrar;
 import com.berinchik.sip.service.registrar.database.util.Binding;
 import com.berinchik.sip.util.CommonUtils;
+import com.berinchik.sip.util.SdpUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONObject;
+import org.mobicents.media.server.io.sdp.SdpException;
 
 import javax.servlet.sip.*;
 import java.io.IOException;
@@ -21,8 +23,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static javax.servlet.sip.SipServletRequest.*;
-import static javax.servlet.sip.SipServletResponse.*;
+import static javax.servlet.sip.SipServletResponse.SC_OK;
 
 /**
  * Created by Maksim on 26.05.2017.
@@ -30,6 +31,7 @@ import static javax.servlet.sip.SipServletResponse.*;
 public class FcsServiceContext implements SipServiceContext {
 
     private static Log logger = LogFactory.getLog(FcsServiceContext.class);
+
     private SipFactory sipFactory;
     private CallContext callContext;
     private SipServiceState serviceState;
@@ -37,10 +39,13 @@ public class FcsServiceContext implements SipServiceContext {
     private Rule matchedRule;
     private ActionSet actionSet;
     private Action currentAction;
-    private ServletTimer currentTimer;
+    private ServletTimer notReachable;
+    private ServletTimer ringingTimer;
+
+    private boolean ringingSent = false;
 
     private int defaultRinginPeriod = 10;
-    private int defaultNotReacheableTimer = 10;
+    private int defaultNotReachablePeriod = 10;
 
     public FcsServiceContext(SipFactory sipFactory) {
         this.sipFactory = sipFactory;
@@ -48,57 +53,65 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public void doAck(SipServletRequest req) {
+    public synchronized void doAck(SipServletRequest req) throws IOException {
         messageAndStateInfo(req);
+        serviceState.doAck(req, this);
     }
 
     @Override
-    public void doBye(SipServletRequest req) {
+    public synchronized void doBye(SipServletRequest req)
+            throws IOException, ServletParseException {
         messageAndStateInfo(req);
+        serviceState.doBye(req, this);
     }
 
     @Override
-    public void doCancel(SipServletRequest req) {
+    public synchronized void doCancel(SipServletRequest req) throws IOException {
         messageAndStateInfo(req);
+        serviceState.doCancel(req, this);
     }
 
     @Override
-    public void doErrorResponse(SipServletResponse resp) {
+    public synchronized void doErrorResponse(SipServletResponse resp) throws IOException {
         messageAndStateInfo(resp);
+        serviceState.doErrorResponse(resp, this);
     }
 
     @Override
-    public void doInvite(SipServletRequest req) throws SQLException, IOException, ServletParseException {
+    public synchronized void doInvite(SipServletRequest req) throws SQLException, IOException, ServletParseException {
         if (req.isInitial()) {
             callContext = new FcsCallContext(req);
-            serviceState = new FcsInitialState();
+            serviceState = new InitialState();
         }
         messageAndStateInfo(req);
         serviceState.doInvite(req, this);
     }
 
     @Override
-    public void doProvisionalResponse(SipServletResponse resp) {
+    public synchronized void doProvisionalResponse(SipServletResponse resp) throws IOException {
+        messageAndStateInfo(resp);
+        serviceState.doProvisionalResponse(resp, this);
+    }
+
+    @Override
+    public synchronized void doRedirectResponse(SipServletResponse resp) {
         messageAndStateInfo(resp);
     }
 
     @Override
-    public void doRedirectResponse(SipServletResponse resp) {
-        messageAndStateInfo(resp);
-    }
-
-    @Override
-    public void doSubscribe(SipServletRequest req) {
+    public synchronized void doSubscribe(SipServletRequest req) {
         messageAndStateInfo(req);
     }
 
     @Override
-    public void doSuccessResponse(SipServletResponse resp) {
+    public synchronized void doSuccessResponse(SipServletResponse resp) throws IOException, SdpException {
         messageAndStateInfo(resp);
+        ringingTimer.cancel();
+        serviceState.doSuccessResponse(resp, this);
     }
 
     @Override
-    public void doUpdate(SipServletRequest req){
+    public synchronized void doUpdate(SipServletRequest req){
         messageAndStateInfo(req);
     }
 
@@ -164,7 +177,7 @@ public class FcsServiceContext implements SipServiceContext {
             callContext.createRequest("INVITE", uri, this).send();
         }
         //Set timer
-        currentTimer
+        notReachable
                 = CommonUtils.getTimerService().createTimer(
                 callContext.getApplicationSession(),
                 ringingPeriod * 1000,
@@ -187,7 +200,7 @@ public class FcsServiceContext implements SipServiceContext {
         callContext.createRequest("INVITE", uri, this).send();
 
         //Set timer
-        currentTimer
+        notReachable
                 = CommonUtils.getTimerService().createTimer(
                 callContext.getApplicationSession(),
                 ringingPeriod * 1000,
@@ -202,7 +215,6 @@ public class FcsServiceContext implements SipServiceContext {
                 = callContext.getInitialRequest().createResponse(code, message);
 
         rejectInviteResponse.send();
-
     }
 
     @Override
@@ -213,12 +225,91 @@ public class FcsServiceContext implements SipServiceContext {
 
         callContext.createRequest("INVITE", requestUri, this).send();
 
-        currentTimer
+        notReachable
+                = CommonUtils.getTimerService().createTimer(
+                callContext.getApplicationSession(),
+                defaultNotReachablePeriod * 1000,
+                false,
+                null);
+    }
+
+    @Override
+    public Action getCurrentAction() {
+        return currentAction;
+    }
+
+    @Override
+    public Action getNextAction() {
+        currentAction = actionSet.getNextAction();
+        return currentAction;
+    }
+
+    @Override
+    public synchronized void noAckReceived(SipErrorEvent sipErrorEvent) {
+        serviceState.noAckReceived(sipErrorEvent, this);
+    }
+
+    @Override
+    public ServiceConfig getServiceConfig() {
+        return serviceConfig;
+    }
+
+    @Override
+    public void cancelNotReachableTimer() {
+        notReachable.cancel();
+    }
+
+    @Override
+    public void startRingingTimer() {
+        ringingTimer
                 = CommonUtils.getTimerService().createTimer(
                 callContext.getApplicationSession(),
                 defaultRinginPeriod * 1000,
                 false,
                 null);
+    }
+
+    @Override
+    public void cancelRingingTimer() {
+        ringingTimer.cancel();
+    }
+
+
+    @Override
+    public synchronized void doTimeout(ServletTimer timer) {
+        serviceState.doTimeout(timer, this);
+    }
+
+    @Override
+    public void sendSuccess(SipServletResponse resp) throws IOException, SdpException {
+        SipServletResponse response = getInitialRequest().createResponse(SC_OK, "Ok");
+        response.setContent(resp.getRawContent(), resp.getContentType());
+        SdpUtils.performSdpNegotiation(getInitialRequest(), response);
+
+        response.send();
+
+        getCallContext().setSuccessfulRequest(resp.getRequest());
+        getCallContext().setSuccessfulResponse(resp);
+    }
+
+    @Override
+    public void forwardBye(SipServletRequest receivedByeRequest)
+            throws IOException, ServletParseException {
+
+        logger.info("forwarding bye request\n"
+                + "initial request = \n"
+                + getInitialRequest() );
+
+        SipServletRequest byeReq = null;
+        if (receivedByeRequest.getSession() == getInitialRequest().getSession()) {
+            //bye received from caller
+            byeReq = callContext.createByeToCallee(this);
+        }
+        else {
+            //bye received from callee
+            byeReq = callContext.createByeToCaller(this);
+        }
+        byeReq.send();
     }
 
     public List<URI> getTargetAddresses(List<ActionTarget> targets) throws ServletParseException {
@@ -235,32 +326,6 @@ public class FcsServiceContext implements SipServiceContext {
 
     public URI getTargetAddress(ActionTarget target) throws ServletParseException {
         return getSipFactory().createURI(serviceConfig.getTargetAddressByName(target.getName()));
-    }
-
-    @Override
-    public Action getCurrentAction() {
-        return currentAction;
-    }
-
-    @Override
-    public Action getNextAction() {
-        currentAction = actionSet.getNextAction();
-        return currentAction;
-    }
-
-    @Override
-    public void noAckReceived(SipErrorEvent sipErrorEvent) {
-        serviceState.noAckReceived(sipErrorEvent, this);
-    }
-
-    @Override
-    public ServiceConfig getServiceConfig() {
-        return serviceConfig;
-    }
-
-    @Override
-    public void doTimeout(ServletTimer timer) {
-        serviceState.doTimeout(timer, this);
     }
 
     void messageAndStateInfo(SipServletMessage message) {

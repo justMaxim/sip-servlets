@@ -1,21 +1,23 @@
 package com.berinchik.sip.service.fsm.state;
 
 import com.berinchik.sip.service.fsm.SipServiceContext;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
-import javax.servlet.sip.ServletTimer;
-import javax.servlet.sip.SipErrorEvent;
-import javax.servlet.sip.SipServletRequest;
-import javax.servlet.sip.SipServletResponse;
+import javax.servlet.sip.*;
 import java.io.IOException;
 import java.sql.SQLException;
 
 /**
  * Created by Maksim on 27.05.2017.
  */
-public class InviteRejectedState implements SipServiceState {
+public class ByeSentState implements SipServiceState {
+
+    private static Log logger = LogFactory.getLog(ByeSentState.class);
+
     @Override
     public void doAck(SipServletRequest req, SipServiceContext context) {
-        
+
     }
 
     @Override
@@ -34,7 +36,7 @@ public class InviteRejectedState implements SipServiceState {
     }
 
     @Override
-    public void doInvite(SipServletRequest req, SipServiceContext context) throws SQLException, IOException {
+    public void doInvite(SipServletRequest req, SipServiceContext context) throws SQLException, IOException, ServletParseException {
 
     }
 
@@ -55,7 +57,8 @@ public class InviteRejectedState implements SipServiceState {
 
     @Override
     public void doSuccessResponse(SipServletResponse resp, SipServiceContext context) throws IOException {
-
+        logger.info("Ok for bye received, request is ready to be terminated");
+        resp.getSession().setInvalidateWhenReady(true);
     }
 
     @Override

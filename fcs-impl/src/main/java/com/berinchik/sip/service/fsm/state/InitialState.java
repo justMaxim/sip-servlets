@@ -26,9 +26,9 @@ import static javax.servlet.sip.SipServletResponse.*;
 /**
  * Created by Maksim on 26.05.2017.
  */
-public class FcsInitialState implements SipServiceState  {
+public class InitialState implements SipServiceState  {
 
-    private static Log logger = LogFactory.getLog(FcsInitialState.class);
+    private static Log logger = LogFactory.getLog(InitialState.class);
 
     @Override
     public void doAck(SipServletRequest req, SipServiceContext context) {
@@ -51,63 +51,64 @@ public class FcsInitialState implements SipServiceState  {
 
     @Override
     public void doInvite(SipServletRequest req, SipServiceContext context) throws SQLException, IOException, ServletParseException {
-        synchronized(context) {
-            //Check if the user is primary
-            String reqUriString = req.getRequestURI().toString();
-            Registrar registrar = CommonUtils.getRegistrarHelper(req);
 
-            JSONObject userSettingsJSON = null;
-            ActionSet serviceActionSet = null;
-            Rule matchedRule = null;
-            SipServiceState nextState = null;
+        //Check if the user is primary
+        String reqUriString = req.getRequestURI().toString();
+        Registrar registrar = CommonUtils.getRegistrarHelper(req);
 
-            String primaryUserIdentity = registrar.getPrimaryUserId(reqUriString);
+        JSONObject userSettingsJSON = null;
+        ActionSet serviceActionSet = null;
+        Rule matchedRule = null;
+        SipServiceState nextState = null;
 
-            if (primaryUserIdentity == null) {
-                //reject invite
-                context.doRejectInvite(SC_NOT_FOUND, "User not found");
-                nextState = new InviteRejectedState();
-            }
-            else {
-                logger.info("User " + reqUriString + "is primary.\nTrying to get user settings");
-                userSettingsJSON = registrar.getServiceConfig(reqUriString);
+        String primaryUserIdentity = registrar.getPrimaryUserId(reqUriString);
 
-                if (userSettingsJSON != null) {
-                    logger.info("User has following settings set:\n" + userSettingsJSON);
-                    //найти сматченный экшэн
-                    context.setUserSettings(userSettingsJSON);
-                    ServiceConfig userSettings = context.getUserSettings();
-                    List<Rule> rulesList = userSettings.getRuleSet().getRules();
+        if (primaryUserIdentity == null) {
+            //reject invite
+            context.doRejectInvite(SC_NOT_FOUND, "User not found");
+            nextState = new InviteCanceledState();
+        }
+        else {
+            logger.info("User " + reqUriString + "is primary.\nTrying to get user settings");
+            userSettingsJSON = registrar.getServiceConfig(reqUriString);
 
-                    if (rulesList.isEmpty()) {
-                        logger.info("rule-set is empty");
-                        throw new FcsUnexpectedException("rule set is empty for: " + reqUriString);
-                    }
+            if (userSettingsJSON != null) {
+                logger.info("User has following settings set:\n" + userSettingsJSON);
+                //найти сматченный экшэн
+                context.setUserSettings(userSettingsJSON);
+                ServiceConfig userSettings = context.getUserSettings();
+                List<Rule> rulesList = userSettings.getRuleSet().getRules();
 
-                    matchedRule = matchRulesAtInitialInvite(rulesList, context);
+                if (rulesList.isEmpty()) {
+                    logger.info("rule-set is empty");
+                    throw new FcsUnexpectedException("rule set is empty for: " + reqUriString);
+                }
 
-                    if (matchedRule != null) {
-                        context.setMatchedRule(matchedRule);
-                        serviceActionSet = matchedRule.getActionSet();
-                        context.setActionSet(serviceActionSet);
+                matchedRule = matchRulesAtInitialInvite(rulesList);
 
-                        Action currentAction = context.getCurrentAction();
-                        nextState = performAction(currentAction, context);
-                    }
-                    else {
-                        context.doForwardInvite(primaryUserIdentity);
-                        nextState = new FcsNoRulesMatchState();
-                    }
+                if (matchedRule != null) {
+                    context.setMatchedRule(matchedRule);
+                    serviceActionSet = matchedRule.getActionSet();
+                    context.setActionSet(serviceActionSet);
 
+                    Action currentAction = context.getCurrentAction();
+                    nextState = performAction(currentAction, context);
                 }
                 else {
-                    nextState = new FcsNoSettingsState();
-                    logger.info("No service config found for user: " + reqUriString);
+                    context.doForwardInvite(primaryUserIdentity);
+                    nextState = new NoRulesMatchState();
                 }
 
             }
-            context.setState(nextState);
+            else {
+                context.doForwardInvite(primaryUserIdentity);
+                nextState = new InviteForwardedAtNoSettingsState();
+                logger.info("No service config found for user: " + reqUriString);
+            }
+
         }
+        context.setState(nextState);
+
     }
 
     private SipServiceState performAction(Action action, SipServiceContext context)
@@ -123,7 +124,7 @@ public class FcsInitialState implements SipServiceState  {
         throw new FcsUnexpectedException("Action id: " + action.getActionId() + " is not supported;");
     }
 
-    private Rule matchRulesAtInitialInvite(List<Rule> rulesList, SipServiceContext context) {
+    private Rule matchRulesAtInitialInvite(List<Rule> rulesList) {
 
         for (Rule rule : rulesList) {
             List<Condition> conditions = rule.getConditions();
@@ -134,7 +135,7 @@ public class FcsInitialState implements SipServiceState  {
         return null;
     }
 
-    boolean conditionsMatchAtInitialInvite(List<Condition> conditions) {
+    private boolean conditionsMatchAtInitialInvite(List<Condition> conditions) {
         for (Condition condition :
                 conditions) {
             switch (condition.getConditionId()) {

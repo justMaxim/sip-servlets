@@ -37,6 +37,7 @@ import com.berinchik.sip.service.registrar.SimpleRegisterHelper;
 import com.berinchik.sip.util.CommonUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.mobicents.media.server.io.sdp.SdpException;
 
 import static javax.servlet.sip.SipServletResponse.*;
 
@@ -47,7 +48,8 @@ import static javax.servlet.sip.SipServletResponse.*;
  *
  */
 @SipListener
-public class FlexibleCommunicationServlet extends SipServlet implements SipErrorListener {
+public class FlexibleCommunicationServlet
+		extends SipServlet implements SipErrorListener, TimerListener {
 
 	private static final String SC_DATABASE_ACCESS = "DatabaseAccess";
 
@@ -87,6 +89,7 @@ public class FlexibleCommunicationServlet extends SipServlet implements SipError
 		logger.info(fromUri);
 
 		try {
+			request.createResponse(SC_TRYING, "Trying");
 			CommonUtils.getSipServiceContext(request).doInvite(request);
 		} catch (SQLException e) {
 			logger.info("Service context error", e);
@@ -94,6 +97,44 @@ public class FlexibleCommunicationServlet extends SipServlet implements SipError
 		}
 
 
+	}
+
+	@Override
+	protected void doBye(SipServletRequest request) throws ServletException,
+			IOException {
+		CommonUtils.getSipServiceContext(request).doBye(request);
+	}
+
+	@Override
+	protected void doCancel(SipServletRequest request) throws ServletException,
+			IOException {
+		CommonUtils.getSipServiceContext(request).doCancel(request);
+	}
+
+	@Override
+	protected void doAck(SipServletRequest request) throws ServletException,
+			IOException {
+		CommonUtils.getSipServiceContext(request).doAck(request);
+	}
+
+	@Override
+	protected void doSuccessResponse(SipServletResponse response) throws IOException {
+		try {
+			CommonUtils.getSipServiceContext(response).doSuccessResponse(response);
+		} catch (SdpException e) {
+			//TODO: process this on lower level to sent error response
+			logger.error("Sdp negotiation failed", e);
+		}
+	}
+
+	@Override
+	protected void doProvisionalResponse(SipServletResponse response) throws IOException {
+		CommonUtils.getSipServiceContext(response).doProvisionalResponse(response);
+	}
+
+	@Override
+	protected void doErrorResponse(SipServletResponse response) throws IOException {
+		CommonUtils.getSipServiceContext(response).doErrorResponse(response);
 	}
 
 	@Override
@@ -191,10 +232,18 @@ public class FlexibleCommunicationServlet extends SipServlet implements SipError
 	}
 
 	@Override
-	protected void doBye(SipServletRequest request) throws ServletException,
-			IOException {
-		SipServletResponse sipServletResponse = request.createResponse(SC_OK);
-		sipServletResponse.send();	
+	public void noAckReceived(SipErrorEvent sipErrorEvent) {
+		CommonUtils.getSipServiceContext(sipErrorEvent.getRequest()).noAckReceived(sipErrorEvent);
+	}
+
+	@Override
+	public void noPrackReceived(SipErrorEvent sipErrorEvent) {
+
+	}
+
+	public void timeout(ServletTimer timer) {
+		logger.info("Timeout received" + timer);
+		CommonUtils.getSipServiceContext(timer.getApplicationSession()).doTimeout(timer);
 	}
 
 	private void addUtilAttributesToAppSession(SipApplicationSession appSession) throws SQLException{
@@ -204,6 +253,9 @@ public class FlexibleCommunicationServlet extends SipServlet implements SipError
 		if (appSession.getAttribute(CommonUtils.SC_FLEX_COMM_SERVICE_CONTEXT) == null) {
 			appSession.setAttribute(CommonUtils.SC_FLEX_COMM_SERVICE_CONTEXT,
 					new FcsServiceContext(this.sipFactory));
+		}
+		if (appSession.getAttribute(CommonUtils.SC_SIP_FACTORY) == null) {
+			appSession.setAttribute(CommonUtils.SC_SIP_FACTORY, this.sipFactory);
 		}
 		if (CommonUtils.getTimerService() == null) {
 			CommonUtils.setTimerService((TimerService) getServletContext().getAttribute(TIMER_SERVICE));
@@ -236,17 +288,5 @@ public class FlexibleCommunicationServlet extends SipServlet implements SipError
 		);
 	}
 
-	@Override
-	public void noAckReceived(SipErrorEvent sipErrorEvent) {
-		CommonUtils.getSipServiceContext(sipErrorEvent.getRequest()).noAckReceived(sipErrorEvent);
-	}
 
-	@Override
-	public void noPrackReceived(SipErrorEvent sipErrorEvent) {
-
-	}
-
-	void timeout(ServletTimer timer) {
-		CommonUtils.getSipServiceContext(timer.getApplicationSession()).doTimeout(timer);
-	}
 }

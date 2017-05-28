@@ -43,9 +43,7 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
             = String.format("SELECT %s FROM %s WHERE %s = ?", BI_COL_USER_NAME, TB_TABLE_BINDINGS, BI_COL_BINDING);
 
     private static final String BI_GET_BINDINGS_BY_USER_NAME
-            = String.format("SELECT %s, %s FROM %s WHERE %s = ? AND %s > ?",
-            BI_COL_BINDING,
-            BI_COL_EXPIRES,
+            = String.format("SELECT * FROM %s WHERE %s = ? AND %s > ?",
             TB_TABLE_BINDINGS,
             BI_COL_USER_NAME,
             BI_COL_EXPIRES);
@@ -124,7 +122,10 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
                 getServiceConfigStatement.setString(1, primaryUserURI);
                 userInfoResultSet = getServiceConfigStatement.executeQuery();
                 if (userInfoResultSet.next()) {
-                    serviceSettings = new JSONObject(userInfoResultSet.getString(PU_COL_SETTINGS));
+                    String stringJsonSettings = userInfoResultSet.getString(PU_COL_SETTINGS);
+                    if(stringJsonSettings != null){
+                        serviceSettings = new JSONObject(stringJsonSettings);
+                    }
                 }
             }
         }

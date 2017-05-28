@@ -1,8 +1,7 @@
 package com.berinchik.sip.service.fsm;
 
-import javax.servlet.sip.SipApplicationSession;
-import javax.servlet.sip.SipServletRequest;
-import javax.servlet.sip.URI;
+import javax.servlet.sip.*;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -18,5 +17,21 @@ public interface CallContext {
     void removeRequest(SipServletRequest request);
     void removeRequests(List<SipServletRequest> requests);
     void removeAllRequestsExceptOne(SipServletRequest request);
-    SipServletRequest createRequest(String Method, URI uri, SipServiceContext serviceContext);
+    SipServletRequest createRequest(String Method, URI uri, SipServiceContext serviceContext) throws IOException;
+
+    SipServletRequest createByeToCallee(SipServiceContext context);
+
+    SipServletRequest createByeToCaller(SipServiceContext context) throws ServletParseException;
+
+    void cancelAll() throws IOException;
+
+    void setSuccessfulRequest(SipServletRequest req);
+    SipServletRequest getSuccessfulRequest();
+    void setSuccessfulResponse(SipServletResponse resp);
+    SipServletResponse getSuccessfulResponse();
+    public void setByeRequest(SipServletRequest byeRequest);
+    public SipServletRequest getByeRequest();
+    public boolean isRingingSent();
+
+    void setRingingSent();
 }
