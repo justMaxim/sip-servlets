@@ -16,7 +16,7 @@ import static javax.servlet.sip.SipServletResponse.*;
 /**
  * Created by Maksim on 26.05.2017.
  */
-public class InviteForwardedAtNoSettingsState implements SipServiceState {
+public class InviteForwardedAtNoSettingsState extends BaseState {
 
     private static Log logger = LogFactory.getLog(InviteForwardedAtNoSettingsState.class);
 
@@ -32,12 +32,12 @@ public class InviteForwardedAtNoSettingsState implements SipServiceState {
 
     @Override
     public void doCancel(SipServletRequest req, SipServiceContext context) throws IOException {
-        context.getCallContext().cancelAll();
+        context.getCallContext().cancelAllOutgoing();
         context.setState(new InviteCanceledState());
     }
 
     @Override
-    public void doErrorResponse(SipServletResponse resp, SipServiceContext context) throws  IOException {
+    public void doErrorResponse(SipServletResponse resp, SipServiceContext context) throws IOException, SQLException, ServletParseException {
         logger.info("Processing error response" + resp.getReasonPhrase());
         context.getInitialRequest().createResponse(resp.getStatus(), resp.getReasonPhrase()).send();
         context.setState(new InviteCanceledState());
@@ -90,9 +90,9 @@ public class InviteForwardedAtNoSettingsState implements SipServiceState {
     }
 
     @Override
-    public void doTimeout(ServletTimer timer, SipServiceContext context) throws IOException {
+    public void doTimeout(ServletTimer timer, SipServiceContext context) throws IOException, ServletParseException, SQLException {
         logger.info("timeout received " + timer);
-        context.getCallContext().cancelAll();
+        context.getCallContext().cancelAllOutgoing();
         if (context.isRingingTimer(timer)) {
             context.doRejectInvite(SC_REQUEST_TIMEOUT, "Request timeout");
 
@@ -101,7 +101,7 @@ public class InviteForwardedAtNoSettingsState implements SipServiceState {
             context.doRejectInvite(SC_TEMPORARILY_UNAVAILABLE, "Temporarily unavailable");
         }
         else {
-            context.getCallContext().cancelAll();
+            context.getCallContext().cancelAllOutgoing();
             context.doRejectInvite(SC_SERVER_INTERNAL_ERROR, "Server internal error");
             throw new FcsUnexpectedException("Timer fired, but no ringing and no unavailable");
         }

@@ -25,7 +25,7 @@ public interface SipServiceContext {
 
     void doCancel(SipServletRequest req) throws IOException;
 
-    void doErrorResponse(SipServletResponse resp) throws IOException;
+    void doErrorResponse(SipServletResponse resp) throws IOException, SQLException, ServletParseException;
 
     void doInvite(SipServletRequest req) throws SQLException, IOException, ServletParseException;
 
@@ -51,6 +51,8 @@ public interface SipServiceContext {
 
     Action getCurrentAction();
 
+    boolean isFlexible();
+
     Action getNextAction();
 
     void setState(SipServiceState state);
@@ -67,7 +69,9 @@ public interface SipServiceContext {
 
     void doParallel() throws IOException, ServletParseException, SQLException;
 
-    void doSerial() throws ServletParseException, IOException;
+    boolean doSerial() throws ServletParseException, IOException;
+
+    boolean sendRingingToCaller() throws IOException;
 
     boolean isRingingTimer(ServletTimer timer);
 
@@ -77,15 +81,15 @@ public interface SipServiceContext {
 
     public boolean sendInvite(String primaryUser) throws SQLException, ServletParseException, IOException;
 
-    ServiceConfig getServiceConfig() throws IOException ;
-
-    void cancelNotReachableTimer();
+    boolean cancelNotReachableTimer();
 
     void startRingingTimer();
 
-    void cancelRingingTimer();
+    boolean cancelRingingTimer();
 
-    void doTimeout(ServletTimer timer) throws IOException;
+    boolean cancelAllTimers();
+
+    void doTimeout(ServletTimer timer) throws IOException, SQLException, ServletParseException;
 
     void sendSuccess(SipServletResponse resp) throws IOException, SdpException;
 

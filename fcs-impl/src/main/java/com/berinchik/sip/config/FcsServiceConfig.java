@@ -96,7 +96,7 @@ public class FcsServiceConfig implements ServiceConfig {
     }
 
     @Override
-    public int getNoReplyTimer() {
+    public int getNotReachableTimer() {
         return defaultNoReply;
     }
 

@@ -12,7 +12,7 @@ import java.sql.SQLException;
 /**
  * Created by Maksim on 27.05.2017.
  */
-public class InviteCanceledState implements SipServiceState {
+public class InviteCanceledState extends BaseState {
     @Override
     public void doAck(SipServletRequest req, SipServiceContext context) {
         

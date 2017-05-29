@@ -12,7 +12,7 @@ import java.util.List;
 public interface ServiceConfig {
     List<ServiceTarget> getTargetList();
     int getDefaultPeriod();
-    int getNoReplyTimer();
+    int getNotReachableTimer();
     RuleSet getRuleSet();
     String getTargetAddressByName(String name);
     List<String> getTargetAddresses(List<ActionTarget> targets);

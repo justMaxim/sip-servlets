@@ -23,10 +23,15 @@ public interface CallContext {
 
     SipServletRequest createByeToCaller(SipServiceContext context) throws ServletParseException;
 
-    void cancelAll() throws IOException;
+    void cancelAllOutgoing() throws IOException;
+
+    void cancelAllInitialOutgoing() throws IOException;
 
     void setSuccessfulRequest(SipServletRequest req);
     SipServletRequest getSuccessfulRequest();
+
+    boolean noRequestsLeft();
+
     void setSuccessfulResponse(SipServletResponse resp);
     SipServletResponse getSuccessfulResponse();
     public void setByeRequest(SipServletRequest byeRequest);

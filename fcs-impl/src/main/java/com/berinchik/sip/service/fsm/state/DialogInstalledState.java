@@ -13,7 +13,7 @@ import static javax.servlet.sip.SipServletResponse.*;
 /**
  * Created by Maksim on 27.05.2017.
  */
-public class DialogInstalledState implements SipServiceState {
+public class DialogInstalledState extends BaseState {
 
     private static Log logger = LogFactory.getLog(DialogInstalledState.class);
 

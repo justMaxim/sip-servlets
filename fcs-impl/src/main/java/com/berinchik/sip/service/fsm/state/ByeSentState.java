@@ -11,7 +11,8 @@ import java.sql.SQLException;
 /**
  * Created by Maksim on 27.05.2017.
  */
-public class ByeSentState implements SipServiceState {
+
+public class ByeSentState extends BaseState {
 
     private static Log logger = LogFactory.getLog(ByeSentState.class);
 

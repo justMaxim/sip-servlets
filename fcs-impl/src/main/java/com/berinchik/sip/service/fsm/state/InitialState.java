@@ -26,7 +26,7 @@ import static javax.servlet.sip.SipServletResponse.*;
 /**
  * Created by Maksim on 26.05.2017.
  */
-public class InitialState implements SipServiceState  {
+public class InitialState extends BaseState  {
 
     private static Log logger = LogFactory.getLog(InitialState.class);
 
@@ -50,7 +50,8 @@ public class InitialState implements SipServiceState  {
     }
 
     @Override
-    public void doInvite(SipServletRequest req, SipServiceContext context) throws SQLException, IOException, ServletParseException {
+    public void doInvite(SipServletRequest req, SipServiceContext context)
+            throws SQLException, IOException, ServletParseException {
 
         //Check if the user is primary
         String reqUriString = req.getRequestURI().toString();
@@ -73,12 +74,14 @@ public class InitialState implements SipServiceState  {
             userSettingsJSON = registrar.getServiceConfig(reqUriString);
 
             if (userSettingsJSON != null) {
+                //check conditions and find action
                 logger.info("User has following settings set:\n" + userSettingsJSON);
-                //найти сматченный экшэн
+
                 context.setUserSettings(userSettingsJSON);
                 ServiceConfig userSettings = context.getUserSettings();
                 List<Rule> rulesList = userSettings.getRuleSet().getRules();
 
+                //fixme:maybe it should be checked on lower level(UserSettings's methods etc.)
                 if (rulesList.isEmpty()) {
                     logger.info("rule-set is empty");
                     throw new FcsUnexpectedException("rule set is empty for: " + reqUriString);
@@ -113,52 +116,6 @@ public class InitialState implements SipServiceState  {
             }
         }
         context.setState(nextState);
-
-    }
-
-    private SipServiceState performAction(Action action, SipServiceContext context)
-            throws IOException, ServletParseException, SQLException {
-        switch(action.getActionId()) {
-            case PARALLEL:
-                context.doParallel();
-                return new ParallelRingingExecutedState();
-            case SERIAL:
-                context.doSerial();
-                return new SerialRingingExecutedState();
-        }
-        throw new FcsUnexpectedException("Action id: " + action.getActionId() + " is not supported;");
-    }
-
-    private Rule matchRulesAtInitialInvite(List<Rule> rulesList) {
-
-        for (Rule rule : rulesList) {
-            List<Condition> conditions = rule.getConditions();
-            if (conditionsMatchAtInitialInvite(conditions)) {
-                return rule;
-            }
-        }
-        return null;
-    }
-
-    private boolean conditionsMatchAtInitialInvite(List<Condition> conditions) {
-        for (Condition condition :
-                conditions) {
-            switch (condition.getConditionId()) {
-                case BUSY:
-                    return false;
-                case NO_ANSWER:
-                    return false;
-                case NOT_REACHABLE:
-                    return false;
-                case VALID_PERIODS:
-                    if (!CommonUtils.matchDateCondition(condition))
-                        return false;
-                    break;
-                default:
-                    throw new FcsUnexpectedException("Unexpected condition: " + condition);
-            }
-        }
-        return true;
     }
 
     @Override

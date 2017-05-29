@@ -1,65 +1,63 @@
 package com.berinchik.sip.service.fsm.state;
 
+import com.berinchik.sip.config.action.Action;
+import com.berinchik.sip.config.action.ActionSet;
+import com.berinchik.sip.config.rule.Rule;
+import com.berinchik.sip.error.FcsUnexpectedException;
 import com.berinchik.sip.service.fsm.SipServiceContext;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import javax.servlet.sip.*;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 
 import static javax.servlet.sip.SipServletResponse.*;
 
 /**
  * Created by Maksim on 27.05.2017.
  */
-public class NoRulesMatchState implements SipServiceState {
-    @Override
-    public void doAck(SipServletRequest req, SipServiceContext context) {
+public class NoRulesMatchState extends InviteForwardedAtNoSettingsState {
 
-    }
+    private static Log logger = LogFactory.getLog(NoRulesMatchState.class);
 
     @Override
-    public void doBye(SipServletRequest req, SipServiceContext context) {
+    public void doErrorResponse(SipServletResponse resp, SipServiceContext context) throws IOException, SQLException, ServletParseException {
+        logger.info("Error response received" + resp);
+        context.cancelAllTimers();
 
-    }
+        List<Rule> rulesList
+                = context.getUserSettings().getRuleSet().getRules();
+        Rule matchedRule = matchRuleAtErrorResponse(rulesList, resp);
+        SipServiceState nextState = null;
+        ActionSet serviceActionSet = null;
 
-    @Override
-    public void doCancel(SipServletRequest req, SipServiceContext context) {
+        if (matchedRule != null) {
+            context.setMatchedRule(matchedRule);
+            serviceActionSet = matchedRule.getActionSet();
+            context.setActionSet(serviceActionSet);
 
-    }
-
-    @Override
-    public void doErrorResponse(SipServletResponse resp, SipServiceContext context) {
-
-    }
-
-    @Override
-    public void doInvite(SipServletRequest req, SipServiceContext context) throws SQLException, IOException, ServletParseException {
-
+            Action currentAction = context.getCurrentAction();
+            nextState = performAction(currentAction, context);
+        }
+        else {
+            context.doRejectInvite(resp.getStatus(), resp.getReasonPhrase());
+            nextState = new InviteCanceledState();
+        }
+        context.getCallContext().removeRequest(resp.getRequest());
+        resp.createAck().send();
+        context.setState(nextState);
     }
 
     @Override
     public void doProvisionalResponse(SipServletResponse resp, SipServiceContext context) throws IOException {
-
-    }
-
-    @Override
-    public void doRedirectResponse(SipServletResponse resp, SipServiceContext context) {
-
-    }
-
-    @Override
-    public void doSubscribe(SipServletRequest req, SipServiceContext context) {
-
-    }
-
-    @Override
-    public void doSuccessResponse(SipServletResponse resp, SipServiceContext context) throws IOException {
-
-    }
-
-    @Override
-    public void doUpdate(SipServletRequest req, SipServiceContext context) {
-
+        logger.info("Provisional response received" + resp);
+        if (resp.getStatus() == SC_RINGING) {
+            context.cancelNotReachableTimer();
+            context.sendRingingToCaller();
+        }
+        context.startRingingTimer();
     }
 
     @Override
@@ -68,7 +66,45 @@ public class NoRulesMatchState implements SipServiceState {
     }
 
     @Override
-    public void doTimeout(ServletTimer timer, SipServiceContext context) {
+    public void doTimeout(ServletTimer timer, SipServiceContext context) throws ServletParseException, SQLException, IOException {
 
+        List<Rule> rulesList
+                = context.getUserSettings().getRuleSet().getRules();
+        Rule matchedRule = null;
+        SipServiceState nextState = null;
+
+
+        if(context.isNotReachableTimer(timer)) {
+            matchedRule = super.matchRulesAtNotReachableTimeout(rulesList);
+
+            if (matchedRule == null) {
+                context.doRejectInvite(SC_TEMPORARILY_UNAVAILABLE, "Not reachable");
+                context.getCallContext().cancelAllOutgoing();
+                nextState = new InviteCanceledState();
+            }
+        }
+        else if(context.isRingingTimer(timer)) {
+            matchedRule = super.matchRulesAtRingingTimeout(rulesList);
+
+            if (matchedRule == null) {
+                context.doRejectInvite(SC_REQUEST_TIMEOUT, "No answer too long ");
+                context.getCallContext().cancelAllOutgoing();
+                nextState = new InviteCanceledState();
+            }
+        }
+        else {
+            throw new FcsUnexpectedException("Unrecognised timer: " + timer);
+        }
+
+        if (matchedRule != null) {
+            context.setMatchedRule(matchedRule);
+            ActionSet serviceActionSet = matchedRule.getActionSet();
+            context.setActionSet(serviceActionSet);
+
+            Action currentAction = context.getCurrentAction();
+            nextState = performAction(currentAction, context);
+        }
+
+        context.setState(nextState);
     }
 }

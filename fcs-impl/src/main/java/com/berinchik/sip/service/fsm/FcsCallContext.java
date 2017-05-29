@@ -72,7 +72,8 @@ public class FcsCallContext implements CallContext {
     }
 
     @Override
-    public SipServletRequest createRequest(String Method, URI toURI, SipServiceContext serviceContext) throws IOException {
+    public SipServletRequest createRequest(String Method, URI toURI, SipServiceContext serviceContext)
+            throws IOException {
 
         SipServletRequest newRequest
                 = serviceContext.getSipFactory().createRequest(
@@ -95,6 +96,11 @@ public class FcsCallContext implements CallContext {
     public SipServletRequest createByeToCaller(SipServiceContext context) throws ServletParseException {
         this.byeRequest = initialRequest.getSession().createRequest("BYE");
         return byeRequest;
+    }
+
+    @Override
+    public boolean noRequestsLeft() {
+        return currentRequests.isEmpty();
     }
 
     @Override
@@ -128,12 +134,23 @@ public class FcsCallContext implements CallContext {
     }
 
     @Override
-    public void cancelAll() throws IOException {
+    public void cancelAllOutgoing() throws IOException {
         for (SipServletRequest request:
              currentRequests) {
-            request.createCancel().send();
+             request.createCancel().send();
         }
         currentRequests.clear();
+    }
+
+    @Override
+    public void cancelAllInitialOutgoing() throws IOException {
+        for (SipServletRequest request:
+                currentRequests) {
+            if(request.getSession().getState() == SipSession.State.INITIAL) {
+                request.createCancel().send();
+                removeRequest(request);
+            }
+        }
     }
 
     public void setSuccessfulRequest(SipServletRequest req) {

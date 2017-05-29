@@ -4,6 +4,7 @@ import com.berinchik.sip.config.FcsServiceConfig;
 import com.berinchik.sip.config.ServiceConfig;
 import com.berinchik.sip.config.action.Action;
 import com.berinchik.sip.config.action.ActionSet;
+import com.berinchik.sip.config.action.ActionSetId;
 import com.berinchik.sip.config.rule.Rule;
 import com.berinchik.sip.config.target.ActionTarget;
 import com.berinchik.sip.service.fsm.state.InitialState;
@@ -23,8 +24,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static javax.servlet.sip.SipServletResponse.SC_OK;
-
+import static javax.servlet.sip.SipServletResponse.*;
 /**
  * Created by Maksim on 26.05.2017.
  */
@@ -69,7 +69,8 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public synchronized void doErrorResponse(SipServletResponse resp) throws IOException {
+    public synchronized void doErrorResponse(SipServletResponse resp)
+            throws IOException, SQLException, ServletParseException {
         messageAndStateInfo(resp);
         serviceState.doErrorResponse(resp, this);
     }
@@ -137,6 +138,8 @@ public class FcsServiceContext implements SipServiceContext {
     @Override
     public void setUserSettings(JSONObject settings) {
         serviceConfig = new FcsServiceConfig(settings);
+        defaultNotReachablePeriod = serviceConfig.getNotReachableTimer();
+        defaultRinginPeriod = serviceConfig.getDefaultPeriod();
     }
 
     @Override
@@ -167,50 +170,54 @@ public class FcsServiceContext implements SipServiceContext {
 
     @Override
     public void doParallel() throws IOException, ServletParseException, SQLException {
-        long ringingPeriod = currentAction.getPeriod();
+
         List<URI> uris = getTargetAddresses(currentAction.getTargets());
-        boolean atLeastOneRequestSent = false;
+        // atLeastOneRequestSent = false;
         for (URI uri :
                 uris) {
-            List<Binding> bindings
-                    = CommonUtils.getRegistrarHelper(getInitialRequest()).getBindings(uri.toString());
-            if (bindings != null) {
-                callContext.createRequest("INVITE", uri, this).send();
-            }
-
-
+            callContext.createRequest("INVITE", uri, this).send();
         }
 
         //Set timer
         notReachableTimer
                 = CommonUtils.getTimerService().createTimer(
                 callContext.getApplicationSession(),
-                ringingPeriod * 1000,
+                defaultNotReachablePeriod * 1000,
                 false,
                 null);
     }
 
     @Override
-    public void doSerial() throws ServletParseException, IOException {
+    public boolean doSerial() throws ServletParseException, IOException {
         ActionTarget target = currentAction.getNextTarget();
 
-        int ringingPeriod = target.getRingingPeriod();
-
-        if (ringingPeriod != -1) {
-            ringingPeriod = currentAction.getPeriod();
+        if (target == null) {
+            return false;
         }
 
         URI uri = getTargetAddress(target);
-
         callContext.createRequest("INVITE", uri, this).send();
 
         //Set timer
         notReachableTimer
                 = CommonUtils.getTimerService().createTimer(
                 callContext.getApplicationSession(),
-                ringingPeriod * 1000,
+                defaultNotReachablePeriod * 1000,
                 false,
                 null);
+
+        return true;
+    }
+
+    @Override
+    public boolean sendRingingToCaller() throws IOException {
+        if (isRingingSent()) {
+            return false;
+        }
+        else {
+            getInitialRequest().createResponse(SC_RINGING, "Ringing").send();
+            return true;
+        }
     }
 
     @Override
@@ -268,6 +275,11 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
+    public boolean isFlexible() {
+        return actionSet.getActionSetId() == ActionSetId.FLEXIBLE_RINGING;
+    }
+
+    @Override
     public Action getNextAction() {
         currentAction = actionSet.getNextAction();
         return currentAction;
@@ -279,18 +291,15 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public ServiceConfig getServiceConfig() {
-        return serviceConfig;
-    }
-
-    @Override
-    public void cancelNotReachableTimer() {
+    public boolean cancelNotReachableTimer() {
         if (notReachableTimer != null) {
             notReachableTimer.cancel();
+            return true;
         }
-        else {
-            logger.warn("Trying to cancel not reachable timer, which is NULL");
-        }
+
+        logger.warn("Trying to cancel not reachable timer, which is NULL");
+
+        return false;
 
     }
 
@@ -310,17 +319,32 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public void cancelRingingTimer() {
+    public boolean cancelRingingTimer() {
         if (ringingTimer != null){
             ringingTimer.cancel();
+            return true;
         }
-        else {
-            logger.warn("Trying to cancel not ringing timer, which is NULL");
-        }
+
+        logger.warn("Trying to cancel not ringing timer, which is NULL");
+        return false;
     }
 
     @Override
-    public synchronized void doTimeout(ServletTimer timer) throws IOException {
+    public boolean cancelAllTimers() {
+        boolean anyTimerCancelled = false;
+
+        if (cancelNotReachableTimer()) {
+            anyTimerCancelled = true;
+        }
+        if (cancelNotReachableTimer()) {
+            anyTimerCancelled = true;
+        }
+
+        return anyTimerCancelled;
+    }
+
+    @Override
+    public synchronized void doTimeout(ServletTimer timer) throws IOException, SQLException, ServletParseException {
         serviceState.doTimeout(timer, this);
     }
 

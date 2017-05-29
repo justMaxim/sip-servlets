@@ -2,6 +2,7 @@ package com.berinchik.sip.config.action;
 
 import static com.berinchik.sip.config.FcsServiceConfig.*;
 
+import com.berinchik.sip.error.FcsUnexpectedException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -13,9 +14,10 @@ import java.util.List;
  */
 public class FcsActionSet implements ActionSet {
 
-    ActionSetId actionSetId;
-    List<Action> actionSet;
-    JSONArray actionJSONArray;
+    private ActionSetId actionSetId;
+    private List<Action> actionSet;
+    private JSONArray actionJSONArray;
+    private int currentAction = 0;
 
     public FcsActionSet(JSONArray actionJSONArray) {
         this.actionJSONArray = actionJSONArray;
@@ -36,12 +38,19 @@ public class FcsActionSet implements ActionSet {
         }
         else if(actionJSONArray.length() == 1)  {
             String actionType = actionJSONArray.getJSONObject(0).getString(SC_ACTION_TYPE);
+            initialiseActionSetId(actionType);
         }
     }
 
     private void initialiseActionSetId(String s) {
         if(SC_ACTION_PARALLEL.equals(s)) {
-
+            actionSetId = ActionSetId.PARALLEL_RINGING;
+        }
+        else if (SC_ACTION_SERIAL.equals(s)) {
+            actionSetId = ActionSetId.SERIAL_RINGING;
+        }
+        else {
+            throw new FcsUnexpectedException("unsupported action type: " + s);
         }
     }
 
@@ -57,6 +66,11 @@ public class FcsActionSet implements ActionSet {
 
     @Override
     public Action getNextAction() {
-        return null;
+        try {
+            return actionSet.get(currentAction++);
+        }
+        catch(IndexOutOfBoundsException ex) {
+            return null;
+        }
     }
 }

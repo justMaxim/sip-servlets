@@ -163,7 +163,13 @@ public class FlexibleCommunicationServlet
 
 	@Override
 	protected void doErrorResponse(SipServletResponse response) throws IOException {
-		CommonUtils.getSipServiceContext(response).doErrorResponse(response);
+		try {
+			CommonUtils.getSipServiceContext(response).doErrorResponse(response);
+		} catch (SQLException e) {
+			logger.error("Database access error: ", e);
+		} catch (ServletParseException e) {
+			logger.error("Servlet parse error: ", e);
+		}
 	}
 
 	@Override
@@ -275,7 +281,7 @@ public class FlexibleCommunicationServlet
 		logger.info("Timeout received" + timer);
 		try {
 			CommonUtils.getSipServiceContext(timer.getApplicationSession()).doTimeout(timer);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			logger.error("Error while processing timeout", e);
 		}
 	}

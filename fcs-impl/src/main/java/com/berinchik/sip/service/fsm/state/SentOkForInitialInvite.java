@@ -11,7 +11,7 @@ import java.sql.SQLException;
 /**
  * Created by Maksim on 26.05.2017.
  */
-public class SentOkForInitialInvite implements SipServiceState {
+public class SentOkForInitialInvite extends BaseState {
 
     private static Log logger = LogFactory.getLog(SentOkForInitialInvite.class);
 

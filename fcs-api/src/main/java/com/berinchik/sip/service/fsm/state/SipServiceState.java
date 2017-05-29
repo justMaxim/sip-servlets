@@ -17,7 +17,7 @@ public interface SipServiceState {
 
     void doCancel(SipServletRequest req, SipServiceContext context) throws IOException;
 
-    void doErrorResponse(SipServletResponse resp, SipServiceContext context) throws IOException;
+    void doErrorResponse(SipServletResponse resp, SipServiceContext context) throws IOException, SQLException, ServletParseException;
 
     void doInvite(SipServletRequest req, SipServiceContext context) throws SQLException, IOException, ServletParseException;
 
@@ -33,5 +33,5 @@ public interface SipServiceState {
 
     void noAckReceived(SipErrorEvent sipErrorEvent, SipServiceContext context);
 
-    void doTimeout(ServletTimer timer, SipServiceContext context) throws IOException;
+    void doTimeout(ServletTimer timer, SipServiceContext context) throws IOException, ServletParseException, SQLException;
 }
