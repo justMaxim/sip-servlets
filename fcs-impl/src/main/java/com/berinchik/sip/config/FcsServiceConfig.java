@@ -6,6 +6,8 @@ import com.berinchik.sip.config.rule.RuleSet;
 import com.berinchik.sip.config.target.ActionTarget;
 import com.berinchik.sip.config.target.FscServiceTarget;
 import com.berinchik.sip.config.target.ServiceTarget;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -16,9 +18,12 @@ import java.util.*;
  */
 public class FcsServiceConfig implements ServiceConfig {
 
+    private static Log logger = LogFactory.getLog(FcsServiceConfig.class);
+
     public static final String SC_SERVICE_NAME = "flexible-communication";
+    public static final String SC_SERVICE_SETTINGS = "service-settings";
     public static final String SC_SERVICE_ACTIVE = "active";
-    public static final String SC_SERVICE_NO_REPLY_TIME = "no-reply-timer";
+    public static final String SC_SERVICE_NO_REPLY_TIME = "not-reachable-timer";
     public static final String SC_SERVICE_DEFAULT_PERIOD = "default-period";
     public static final String SC_SERVICE_TARGET_LIST = "target-list";
 
@@ -44,16 +49,18 @@ public class FcsServiceConfig implements ServiceConfig {
     private JSONObject jsonConfig;
     private List<ServiceTarget> serviceTargets;
     private Map<String, ServiceTarget> namesToTargetsMap;
-    private int defaultPeriod = 15;
-    private int defaultNoReply = 15;
+    private int defaultPeriod = 8;
+    private int defaultNoReply = 8;
     private RuleSet ruleSet;
 
     public FcsServiceConfig(JSONObject config) {
-        jsonConfig = config.getJSONObject(SC_SERVICE_NAME);
+        jsonConfig = config.getJSONObject(SC_SERVICE_SETTINGS);
 
         if (!jsonConfig.getBoolean(SC_SERVICE_ACTIVE)) {
             throw new ServiceInactiveException("Service is inactive for this user");
         }
+
+        logger.trace("Configs selected" + jsonConfig);
 
         namesToTargetsMap = new HashMap<>();
         defaultPeriod = jsonConfig.getInt(SC_SERVICE_DEFAULT_PERIOD);
@@ -67,8 +74,11 @@ public class FcsServiceConfig implements ServiceConfig {
         JSONArray targetsArray = jsonConfig.getJSONArray(SC_SERVICE_TARGET_LIST);
         serviceTargets = new ArrayList<>();
 
+        logger.trace("Initialising targets");
+
         for(int i = 0; i < targetsArray.length(); ++i) {
             JSONObject targetJSONObject = targetsArray.getJSONObject(i);
+            logger.trace("New target: " + targetJSONObject);
             ServiceTarget newTarget = new FscServiceTarget(targetJSONObject);
             this.serviceTargets.add(newTarget);
             this.namesToTargetsMap.put(newTarget.getName(), newTarget);
@@ -76,8 +86,8 @@ public class FcsServiceConfig implements ServiceConfig {
     }
 
     private void initialiseRuleSet() {
+        logger.trace("Initialising rule-set");
         ruleSet = new FcsServiceRuleSet(jsonConfig.getJSONArray(SC_RULE_SET));
-
     }
 
     @Override
@@ -87,7 +97,7 @@ public class FcsServiceConfig implements ServiceConfig {
 
     @Override
     public String getTargetAddressByName(String name) {
-        return ((ServiceTarget)this.namesToTargetsMap.get(name)).getAdderss();
+        return this.namesToTargetsMap.get(name).getAdderss();
     }
 
     @Override

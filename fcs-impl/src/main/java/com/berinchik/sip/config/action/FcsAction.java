@@ -8,6 +8,8 @@ import com.berinchik.sip.config.target.FcsSerialRingingTarget;
 
 import static com.berinchik.sip.config.FcsServiceConfig.*;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -18,6 +20,8 @@ import java.util.List;
  * Created by Maksim on 27.05.2017.
  */
 public class FcsAction implements Action {
+
+    private static Log logger = LogFactory.getLog(FcsAction.class);
 
     private ActionId actionId;
     private List<ActionTarget> targets;
@@ -30,6 +34,7 @@ public class FcsAction implements Action {
         actionJSONObject = actionJson;
         period = actionJson.getInt(SC_ACTION_PERIOD);
         initialiseActionID();
+        logger.trace("ActionID: " + getActionId());
         initialiseTargetList();
     }
 
@@ -45,7 +50,7 @@ public class FcsAction implements Action {
 
     @Override
     public ActionTarget getNextTarget() {
-        if (actionId == ActionId.PARALLEL || targets.size() < currentTarget) {
+        if (actionId == ActionId.PARALLEL || targets.size() <= currentTarget - 1) {
             return null;
         }
 
@@ -84,7 +89,7 @@ public class FcsAction implements Action {
     private void initialiseTargetList() {
         targets = new ArrayList<>();
         JSONArray actionsJsonArray = actionJSONObject.getJSONArray(SC_ACTION_TARGETS);
-
+        logger.trace("Initialising targets list: ");
         for(int i = 0; i < actionsJsonArray.length(); ++i) {
             targets.add(createTarget(actionsJsonArray.getJSONObject(i)));
         }

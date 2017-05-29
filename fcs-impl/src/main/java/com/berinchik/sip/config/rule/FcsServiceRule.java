@@ -7,6 +7,8 @@ import static com.berinchik.sip.config.FcsServiceConfig.*;
 
 
 import com.berinchik.sip.config.condition.FcsRuleCondition;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -18,6 +20,8 @@ import java.util.List;
  */
 public class FcsServiceRule implements Rule {
 
+    private static Log logger = LogFactory.getLog(FcsServiceRule.class);
+
     private String ruleId;
     private List<Condition> conditionSet;
     private ActionSet actionSet;
@@ -28,13 +32,18 @@ public class FcsServiceRule implements Rule {
     public FcsServiceRule(JSONObject ruleJSONObject) {
         this.ruleJSONObject = ruleJSONObject;
         ruleId = ruleJSONObject.getString(SC_RULE_CUSTOM_NAME);
+
+        initialiseConditionSet();
+        initialiseActionSet();
     }
 
     private void initialiseActionSet() {
+        logger.trace("Initialising action-set:");
         actionSet = new FcsActionSet(ruleJSONObject.getJSONArray(SC_RULE_ACTION_SET));
     }
 
     private void initialiseConditionSet() {
+        logger.trace("Initialising condition-set:");
         conditionSetJSONArray = ruleJSONObject.getJSONArray(SC_RULE_CONDITIONS);
         conditionSet = new ArrayList<>();
 

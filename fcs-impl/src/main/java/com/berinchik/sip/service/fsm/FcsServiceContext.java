@@ -250,8 +250,9 @@ public class FcsServiceContext implements SipServiceContext {
         Registrar registrar = CommonUtils.getRegistrarHelper(getInitialRequest());
         List<Binding> bindings = registrar.getBindings(primaryUser);
 
+        logger.debug("trying to send invite");
         if (bindings == null) {
-            logger.info("No bindings");
+            logger.debug("No bindings");
             return false;
         }
 
@@ -364,7 +365,7 @@ public class FcsServiceContext implements SipServiceContext {
     public void forwardBye(SipServletRequest receivedByeRequest)
             throws IOException, ServletParseException {
 
-        logger.info("forwarding bye request\n"
+        logger.debug("forwarding bye request\n"
                 + "initial request = \n"
                 + getInitialRequest() );
 

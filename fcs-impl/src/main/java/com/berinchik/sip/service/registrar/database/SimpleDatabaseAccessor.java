@@ -172,11 +172,11 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
         try {
             statement = getNewPreparedStatement(PU_GET_ALL_ABOUT_USER);
             statement.setString(1, primaryUserURI);
-            logger.info(statement.toString());
+            logger.trace(statement.toString());
             userInfoResultSet = statement.executeQuery();
 
             if (userInfoResultSet.next()) {
-                logger.info("User is primary:\n"
+                logger.trace("User is primary:\n"
                         + userInfoResultSet.getString(PU_COL_PRIMARY_USER)
                         +"\n" + userInfoResultSet.getString(PU_COL_SETTINGS));
                 isPrimary = true;
@@ -200,11 +200,11 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
             statement.setString(1, primaryUserURI);
             statement.setString(2, binding);
 
-            logger.info(statement.toString());
+            logger.trace(statement.toString());
 
             statement.executeUpdate();
 
-            logger.info("Removed binding of: " + binding
+            logger.trace("Removed binding of: " + binding
                     + " to " + primaryUserURI);
         }
         finally {
@@ -217,7 +217,7 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
     @Override
     public boolean addBinding(String primaryUserURI, String binding, long expires) throws SQLException {
         PreparedStatement statement = null;
-        logger.info("Adding binding " + binding
+        logger.trace("Adding binding " + binding
                 + "\n");
         try {
             statement = getNewPreparedStatement(BI_ADD_BINDING_TO_USER_NAME);
@@ -247,11 +247,11 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
         List<Binding> bindings = new ArrayList<>();
 
         try {
-            logger.info("Trying to get bindings of the user " + primaryUserURI);
+            logger.trace("Trying to get bindings of the user " + primaryUserURI);
             statement = getNewPreparedStatement(BI_GET_BINDINGS_BY_USER_NAME);
             statement.setString(1, primaryUserURI);
             statement.setInt(2, (int)CommonUtils.getCurrentTimestampInSeconds());
-            logger.info(statement.toString());
+            logger.trace(statement.toString());
             userInfoResultSet = statement.executeQuery();
 
             while (userInfoResultSet.next()) {
@@ -261,7 +261,7 @@ public class SimpleDatabaseAccessor implements DatabaseAccessor {
                 contact = userInfoResultSet.getString(BI_COL_BINDING);
                 expires = userInfoResultSet.getLong(BI_COL_EXPIRES);
 
-                logger.info("\n\tgot binding: " + contact);
+                logger.trace("\n\tgot binding: " + contact);
 
                 bindings.add(new UserBinding(contact, primaryUserURI, expires));
             }

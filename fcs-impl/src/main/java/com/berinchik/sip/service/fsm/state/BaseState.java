@@ -6,6 +6,8 @@ import com.berinchik.sip.config.rule.Rule;
 import com.berinchik.sip.error.FcsUnexpectedException;
 import com.berinchik.sip.service.fsm.SipServiceContext;
 import com.berinchik.sip.util.CommonUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.mobicents.media.server.io.sdp.SdpException;
 
 import javax.servlet.sip.*;
@@ -20,6 +22,8 @@ import static javax.servlet.sip.SipServletResponse.SC_BUSY_HERE;
  * Created by Maksim on 29.05.2017.
  */
 public class BaseState implements SipServiceState {
+
+    private static Log logger = LogFactory.getLog(BaseState.class);
 
     private static final String SC_ERROR_MESSAGE = "Attempt to process request in BaseState's method";
 
@@ -172,8 +176,10 @@ public class BaseState implements SipServiceState {
     }
 
     protected boolean conditionsMatchAtInitialInvite(List<Condition> conditions) {
+        logger.debug("Matching conditions\nconditions size:" + conditions.size());
         for (Condition condition :
                 conditions) {
+            logger.debug("First condition: " + condition.getConditionId());
             switch (condition.getConditionId()) {
                 case BUSY:
                     return false;

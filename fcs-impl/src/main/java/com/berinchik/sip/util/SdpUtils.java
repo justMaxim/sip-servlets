@@ -39,7 +39,7 @@ public class SdpUtils {
 
         for (String sdpLine:
              strings) {
-            logger.info("sdpLine: " + sdpLine);
+            logger.trace("sdpLine: " + sdpLine);
             if (sdpLine.indexOf("a=rtpmap:") != -1) {
                 if (sdpLine.contains("8 PCMA/8000")) {
                     negotiatedSdp.append(sdpLine + "\n");
@@ -54,21 +54,6 @@ public class SdpUtils {
         }
 
         successResponse.setContent(negotiatedSdp, successResponse.getContentType());
-
-        /*SessionDescription sdpResponse = SessionDescriptionParser.parse(responseSdp);
-        SessionDescription sdpRequest = SessionDescriptionParser.parse(requestSdp);*/
-
-        //logger.info("got request sdp: " + strings);
-
-        /*CandidateAttribute candidate = sdpResponse.getMediaDescription("audio").getCandidates()[0];
-
-        sdpResponse.getMediaDescription("audio").removeAllCandidates();
-
-        logger.info("sdp response after getMediaDescription().removeAllCandidates: " + sdpResponse);
-
-        sdpResponse.getMediaDescription("audio").addCandidate(candidate);
-
-        logger.info("sdp response after adding first candidate: " + sdpResponse);*/
 
         return true;
     }

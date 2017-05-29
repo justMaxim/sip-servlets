@@ -58,7 +58,7 @@ public class ByeSentState extends BaseState {
 
     @Override
     public void doSuccessResponse(SipServletResponse resp, SipServiceContext context) throws IOException {
-        logger.info("Ok for bye received, request is ready to be terminated");
+        logger.debug("Ok for bye received, request is ready to be terminated");
         resp.getSession().setInvalidateWhenReady(true);
     }
 

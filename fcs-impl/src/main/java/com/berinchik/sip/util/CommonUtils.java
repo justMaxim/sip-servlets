@@ -1,8 +1,12 @@
 package com.berinchik.sip.util;
 
 import com.berinchik.sip.config.condition.Condition;
+import com.berinchik.sip.config.condition.ConditionId;
+import com.berinchik.sip.error.FcsUnexpectedException;
 import com.berinchik.sip.service.fsm.SipServiceContext;
 import com.berinchik.sip.service.registrar.Registrar;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import javax.servlet.sip.*;
 
@@ -93,6 +97,13 @@ public class CommonUtils {
 
     public static boolean matchDateCondition(Condition condition) {
         //TODO: implement date condition check;
+        if (condition.getConditionId() != ConditionId.VALID_PERIODS) {
+            throw new FcsUnexpectedException("condition id is not valid-perions"
+                    + condition.getConditionId());
+        }
+
+        JSONArray conditionPeriods = condition.getConditionValue().getJSONArray(Condition.SC_PERIODS_ARRAY);
+
         return true;
     }
 }

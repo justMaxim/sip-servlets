@@ -3,6 +3,8 @@ package com.berinchik.sip.config.action;
 import static com.berinchik.sip.config.FcsServiceConfig.*;
 
 import com.berinchik.sip.error.FcsUnexpectedException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -13,6 +15,9 @@ import java.util.List;
  * Created by Maksim on 27.05.2017.
  */
 public class FcsActionSet implements ActionSet {
+
+    private static Log logger = LogFactory.getLog(FcsActionSet.class);
+
 
     private ActionSetId actionSetId;
     private List<Action> actionSet;
@@ -28,6 +33,7 @@ public class FcsActionSet implements ActionSet {
     private void initialiseActionSet() {
         actionSet = new ArrayList<>();
         for(int i = 0; i < actionJSONArray.length(); ++i) {
+
             actionSet.add(new FcsAction(actionJSONArray.getJSONObject(i)));
         }
     }
@@ -40,6 +46,7 @@ public class FcsActionSet implements ActionSet {
             String actionType = actionJSONArray.getJSONObject(0).getString(SC_ACTION_TYPE);
             initialiseActionSetId(actionType);
         }
+        logger.trace("Action-set ID: " + actionSetId);
     }
 
     private void initialiseActionSetId(String s) {

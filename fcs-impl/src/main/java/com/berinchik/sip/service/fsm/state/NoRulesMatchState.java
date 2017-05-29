@@ -24,7 +24,7 @@ public class NoRulesMatchState extends InviteForwardedAtNoSettingsState {
 
     @Override
     public void doErrorResponse(SipServletResponse resp, SipServiceContext context) throws IOException, SQLException, ServletParseException {
-        logger.info("Error response received" + resp);
+        logger.info("Processing error response: " + resp.getStatus() + " " + resp.getReasonPhrase());
         context.cancelAllTimers();
 
         List<Rule> rulesList
@@ -52,7 +52,7 @@ public class NoRulesMatchState extends InviteForwardedAtNoSettingsState {
 
     @Override
     public void doProvisionalResponse(SipServletResponse resp, SipServiceContext context) throws IOException {
-        logger.info("Provisional response received" + resp);
+        logger.info("Processing provisional response: " + resp.getStatus() + " " + resp.getReasonPhrase());
         if (resp.getStatus() == SC_RINGING) {
             context.cancelNotReachableTimer();
             context.sendRingingToCaller();

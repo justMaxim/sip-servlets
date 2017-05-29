@@ -91,7 +91,7 @@ public class SimpleRegisterHelper implements Registrar {
     public SipServletResponse createRegisterSuccessResponse(SipServletRequest request)
             throws SQLException, ServletParseException {
 
-        logger.info("Creating 200 Ok for success registration.");
+        logger.trace("Creating 200 Ok for success registration.");
         String cleanToUri = request.getTo().getURI().toString();
 
         SipServletResponse resp = request.createResponse(SC_OK, "Ok");
@@ -112,7 +112,7 @@ public class SimpleRegisterHelper implements Registrar {
     private void addContactHeaders(SipServletMessage message,
                                    List<Binding> bindings,
                                    SipFactory sipFactory) throws ServletParseException {
-        logger.info("Adding contact headers to the message:\n"
+        logger.trace("Adding contact headers to the message:\n"
                 + message);
         if (bindings == null) {
             throw new FcsUnexpectedException("Registration should be complete, but there are no bindings");
@@ -120,13 +120,9 @@ public class SimpleRegisterHelper implements Registrar {
 
         for (Binding binding:
                 bindings) {
-            logger.info("Binding: \n" + binding);
+            logger.trace("Binding: \n" + binding);
             long expiresTime = binding.getDuration();
             String contact = binding.getBindingURI();
-
-            if (sipFactory == null) {
-                logger.info("sipFactory == null");
-            }
 
             Address contactAddress = sipFactory.createAddress(contact);
             contactAddress.setExpires((int) expiresTime);

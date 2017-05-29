@@ -70,20 +70,24 @@ public class InitialState extends BaseState  {
             nextState = new InviteCanceledState();
         }
         else {
-            logger.info("User " + reqUriString + "is primary.\nTrying to get user settings");
+            logger.debug("User " + reqUriString + "is primary.\nTrying to get user settings");
             userSettingsJSON = registrar.getServiceConfig(reqUriString);
 
             if (userSettingsJSON != null) {
                 //check conditions and find action
-                logger.info("User has following settings set:\n" + userSettingsJSON);
+                logger.debug("User has following settings set:\n" + userSettingsJSON);
 
                 context.setUserSettings(userSettingsJSON);
                 ServiceConfig userSettings = context.getUserSettings();
                 List<Rule> rulesList = userSettings.getRuleSet().getRules();
 
                 //fixme:maybe it should be checked on lower level(UserSettings's methods etc.)
-                if (rulesList.isEmpty()) {
-                    logger.info("rule-set is empty");
+                if (rulesList == null) {
+                    logger.debug("rule-set is empty");
+                    throw new FcsUnexpectedException("rule set is empty for: " + reqUriString);
+                }
+                else if(rulesList.isEmpty()) {
+                    logger.debug("rule-set is empty");
                     throw new FcsUnexpectedException("rule set is empty for: " + reqUriString);
                 }
 

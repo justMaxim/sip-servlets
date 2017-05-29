@@ -87,7 +87,7 @@ public class FlexibleCommunicationServlet
 	
 	@Override
 	public void init(ServletConfig servletConfig) throws ServletException {
-		logger.info("the HelloSipWorld servlet has been started");
+		logger.info("the FlexibleCommunicationServlet servlet has been started");
 		super.init(servletConfig);
 	}
 
@@ -111,17 +111,17 @@ public class FlexibleCommunicationServlet
 			IOException {
 
 
-		logger.info("INVITE before normalisation:\n"
+		logger.trace("INVITE before normalisation:\n"
 				+ request);
 		normaliseInviteRequest(request);
-		logger.info("INVITE after normalisation:\n"
+		logger.trace("INVITE after normalisation:\n"
 				+ request);
 
 		try {
 			request.createResponse(SC_TRYING, "Trying");
 			CommonUtils.getSipServiceContext(request).doInvite(request);
 		} catch (SQLException e) {
-			logger.info("Service context error", e);
+			logger.error("Service context error", e);
 			request.createResponse(SC_SERVER_INTERNAL_ERROR, "Server internal error");
 		}
 
@@ -176,10 +176,10 @@ public class FlexibleCommunicationServlet
 	protected void doRegister(SipServletRequest request) throws ServletException,
 			IOException {
 
-		logger.info("Got REGISTER:\n"
+		logger.trace("Got REGISTER:\n"
 				+ request);
 		normaliseRegisterRequest(request);
-		logger.info("normalisation performed");
+		logger.trace("normalisation performed");
 		logMessageInfo(request);
 
 		Registrar registrar = CommonUtils.getRegistrarHelper(request);
@@ -192,7 +192,7 @@ public class FlexibleCommunicationServlet
 		if (contacts.hasNext()){
 			firstContact = contacts.next();
 			contacts.previous();
-			logger.info("contact: " + firstContact);
+			logger.trace("contact: " + firstContact);
 		}
 
 		SipServletResponse resp = null;
@@ -205,26 +205,26 @@ public class FlexibleCommunicationServlet
 			}
 
 			if (!registrar.isPrimary(toURI.toString())) {
-				logger.info("Primary user " + toURI + " not found during registration");
+				logger.debug("Primary user " + toURI + " not found during registration");
 				resp = request.createResponse(SC_NOT_FOUND, "No such user");
 			}
 			else if(firstContact == null) {
-				logger.info("No contact headers during registration to "
+				logger.debug("No contact headers during registration to "
 						+ toURI
 						+ "\nReturning all bindings");
 
 				resp = registrar.createRegisterSuccessResponse(request);
 			}
 			else if (firstContact.isWildcard()) {
-				logger.info("First contact is Wildcard");
+				logger.debug("First contact is Wildcard");
 				if (request.getExpires() == 0) {
-					logger.info("Contact = *, Expire = 0: complete de registration");
+					logger.debug("Contact = *, Expire = 0: complete de registration");
 					registrar.deregisterUser(toURI.toString());
 					resp = request.createResponse(SC_OK, "Ok");
 					resp.removeHeader(CommonUtils.SC_EXPIRES_HEADER);
 				}
 				else {
-					logger.info("Contact = *, Expire != 0: request could not be understood");
+					logger.debug("Contact = *, Expire != 0: request could not be understood");
 					resp = request.createResponse(SC_BAD_REQUEST, "Bad request");
 				}
 			}
@@ -237,12 +237,12 @@ public class FlexibleCommunicationServlet
 				resp.removeHeader(CommonUtils.SC_EXPIRES_HEADER);
 			}
 			else {
-				logger.info("Request is recognized as registration request");
+				logger.debug("Request is recognized as registration request");
 				while(contacts.hasNext()) {
 
 					Address nextContact = contacts.next();
 
-					logger.info("Trying to register contact "
+					logger.trace("Trying to register contact "
 							+ nextContact.getURI()
 							+ " to user "
 							+ toURI);
@@ -262,7 +262,7 @@ public class FlexibleCommunicationServlet
 			resp = request.createResponse(SC_SERVER_INTERNAL_ERROR, "Server internal error");
 		}
 
-		logger.info("Sending response: \n" + resp);
+		logger.trace("Sending response: \n" + resp);
 
 		resp.send();
 	}
@@ -305,21 +305,21 @@ public class FlexibleCommunicationServlet
 	void logMessageInfo(SipServletMessage message) throws ServletParseException {
 
 		Address address = message.getTo();
-		logger.info("\n\nTo header Address info:\n");
-		logAddressInfo(address);
+		logger.trace("\n\nTo header Address info:\n");
+		traceLogAddressInfo(address);
 
 		address = message.getFrom();
-		logger.info("\n\nFrom header Address info:\n");
-		logAddressInfo(address);
+		logger.trace("\n\nFrom header Address info:\n");
+		traceLogAddressInfo(address);
 
 		address = message.getAddressHeader(CommonUtils.SC_CONTACT_HEADER);
-		logger.info("\n\nContact header Address info:\n");
-		logAddressInfo(address);
+		logger.trace("\n\nContact header Address info:\n");
+		traceLogAddressInfo(address);
 
 	}
 
-	void logAddressInfo(Address toAddress) {
-		logger.info("\nexpires: " + toAddress.getExpires()
+	void traceLogAddressInfo(Address toAddress) {
+		logger.trace("\nexpires: " + toAddress.getExpires()
 				+ "\ntoAddress: " + toAddress
 				+ "\ntoAddress.getDisplayName(): " + toAddress.getDisplayName()
 				+ "\ntoAddress.getURI(): " + toAddress.getURI()

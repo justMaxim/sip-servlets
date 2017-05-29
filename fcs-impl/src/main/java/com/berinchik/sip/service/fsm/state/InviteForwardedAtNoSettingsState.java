@@ -38,7 +38,7 @@ public class InviteForwardedAtNoSettingsState extends BaseState {
 
     @Override
     public void doErrorResponse(SipServletResponse resp, SipServiceContext context) throws IOException, SQLException, ServletParseException {
-        logger.info("Processing error response" + resp.getReasonPhrase());
+        logger.info("Processing error response: " + resp.getStatus() + " " + resp.getReasonPhrase());
         context.getInitialRequest().createResponse(resp.getStatus(), resp.getReasonPhrase()).send();
         context.setState(new InviteCanceledState());
     }
@@ -51,11 +51,11 @@ public class InviteForwardedAtNoSettingsState extends BaseState {
 
     @Override
     public void doProvisionalResponse(SipServletResponse resp, SipServiceContext context) throws IOException {
-        logger.info("Processing provisional response: " + resp.getReasonPhrase());
+        logger.info("Processing provisional response: " + resp.getStatus() + " " + resp.getReasonPhrase());
         if(resp.getStatus() == SipServletResponse.SC_RINGING && !context.getCallContext().isRingingSent()) {
             context.getInitialRequest().createResponse(SC_RINGING, "Ringing").send();
             context.getCallContext().setRingingSent();
-            logger.info("Sending ringing to the initial request");
+            logger.debug("Sending ringing to the initial request");
             context.cancelNotReachableTimer();
             context.startRingingTimer();
         }
@@ -91,7 +91,7 @@ public class InviteForwardedAtNoSettingsState extends BaseState {
 
     @Override
     public void doTimeout(ServletTimer timer, SipServiceContext context) throws IOException, ServletParseException, SQLException {
-        logger.info("timeout received " + timer);
+        logger.debug("timeout received " + timer);
         context.getCallContext().cancelAllOutgoing();
         if (context.isRingingTimer(timer)) {
             context.doRejectInvite(SC_REQUEST_TIMEOUT, "Request timeout");
