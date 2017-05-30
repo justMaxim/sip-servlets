@@ -163,11 +163,10 @@ public class BaseState implements SipServiceState {
                     }
                     break;
                 case NO_ANSWER:
-                    return false;
                 case NOT_REACHABLE:
                     return false;
                 case VALID_PERIODS:
-                    if (!CommonUtils.matchDateCondition(condition))
+                    if (!CommonUtils.matchPeriodCondition(condition))
                         return false;
                     break;
                 default:
@@ -184,13 +183,11 @@ public class BaseState implements SipServiceState {
             logger.debug("First condition: " + condition.getConditionId());
             switch (condition.getConditionId()) {
                 case BUSY:
-                    return false;
                 case NO_ANSWER:
-                    return false;
                 case NOT_REACHABLE:
                     return false;
                 case VALID_PERIODS:
-                    if (!CommonUtils.matchDateCondition(condition))
+                    if (!CommonUtils.matchPeriodCondition(condition))
                         return false;
                     break;
                 default:
@@ -208,9 +205,9 @@ public class BaseState implements SipServiceState {
                 case NO_ANSWER:
                     return false;
                 case NOT_REACHABLE:
-                    return true;
+                    break;
                 case VALID_PERIODS:
-                    if (!CommonUtils.matchDateCondition(condition))
+                    if (!CommonUtils.matchPeriodCondition(condition))
                         return false;
                     break;
                 default:
@@ -221,6 +218,8 @@ public class BaseState implements SipServiceState {
     }
 
     protected boolean conditionsMatchAtRingingTimeout(List<Condition> conditions) {
+
+
         for (Condition condition :
                 conditions) {
             switch (condition.getConditionId()) {
@@ -228,9 +227,9 @@ public class BaseState implements SipServiceState {
                 case NOT_REACHABLE:
                     return false;
                 case NO_ANSWER:
-                    return true;
+                    break;
                 case VALID_PERIODS:
-                    if (!CommonUtils.matchDateCondition(condition))
+                    if (!CommonUtils.matchPeriodCondition(condition))
                         return false;
                     break;
                 default:

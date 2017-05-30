@@ -80,9 +80,8 @@ public class InitialState extends BaseState  {
                 ServiceConfig userSettings = context.getUserSettings();
                 List<Rule> rulesList = userSettings.getRuleSet().getRules();
 
-                //fixme:maybe it should be checked on lower level(UserSettings's methods etc.)
                 if (rulesList == null) {
-                    logger.debug("rule-set is empty");
+                    logger.debug("rule-set is null");
                     throw new FcsUnexpectedException("rule set is empty for: " + reqUriString);
                 }
                 else if(rulesList.isEmpty()) {
