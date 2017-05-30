@@ -319,6 +319,12 @@ public class FlexibleCommunicationServlet
 	}
 
 	void traceLogAddressInfo(Address toAddress) {
+
+		if (toAddress.isWildcard()) {
+			logger.trace("Address is wildcard");
+			return;
+		}
+
 		logger.trace("\nexpires: " + toAddress.getExpires()
 				+ "\ntoAddress: " + toAddress
 				+ "\ntoAddress.getDisplayName(): " + toAddress.getDisplayName()

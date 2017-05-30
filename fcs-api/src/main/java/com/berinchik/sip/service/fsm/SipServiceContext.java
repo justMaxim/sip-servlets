@@ -57,7 +57,7 @@ public interface SipServiceContext {
 
     void setState(SipServiceState state);
 
-    void setUserSettings(JSONObject settings);
+    void setUserSettingsJSON(JSONObject settings);
 
     ServiceConfig getUserSettings();
 

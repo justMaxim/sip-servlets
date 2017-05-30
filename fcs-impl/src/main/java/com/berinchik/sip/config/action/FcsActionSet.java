@@ -74,6 +74,7 @@ public class FcsActionSet implements ActionSet {
     @Override
     public Action getNextAction() {
         try {
+            logger.debug("Returning action number: " + currentAction);
             return actionSet.get(currentAction++);
         }
         catch(IndexOutOfBoundsException ex) {

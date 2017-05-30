@@ -3,7 +3,6 @@ package com.berinchik.sip.service.fsm.state;
 import com.berinchik.sip.config.ServiceConfig;
 import com.berinchik.sip.config.action.Action;
 import com.berinchik.sip.config.action.ActionSet;
-import com.berinchik.sip.config.condition.Condition;
 import com.berinchik.sip.error.FcsUnexpectedException;
 import com.berinchik.sip.config.rule.Rule;
 import com.berinchik.sip.service.fsm.SipServiceContext;
@@ -77,7 +76,7 @@ public class InitialState extends BaseState  {
                 //check conditions and find action
                 logger.debug("User has following settings set:\n" + userSettingsJSON);
 
-                context.setUserSettings(userSettingsJSON);
+                context.setUserSettingsJSON(userSettingsJSON);
                 ServiceConfig userSettings = context.getUserSettings();
                 List<Rule> rulesList = userSettings.getRuleSet().getRules();
 
@@ -94,11 +93,13 @@ public class InitialState extends BaseState  {
                 matchedRule = matchRulesAtInitialInvite(rulesList);
 
                 if (matchedRule == null) {
+                    logger.debug("No rules matched");
                     if (context.sendInvite(primaryUserIdentity)) {
                         nextState = new NoRulesMatchState();
                     }
                 }
                 else {
+                    logger.debug("Rules matched at initial invite");
                     context.setMatchedRule(matchedRule);
                     serviceActionSet = matchedRule.getActionSet();
                     context.setActionSet(serviceActionSet);

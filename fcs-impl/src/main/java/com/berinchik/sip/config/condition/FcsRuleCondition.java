@@ -22,6 +22,8 @@ public class FcsRuleCondition implements Condition {
         stringConditionId = jsonConditionObject.getString(SC_CONDITION_TYPE);
         conditionValue = jsonConditionObject;
         initialiseCondition();
+        logger.trace("Condition ID: " + getConditionId());
+        logger.trace("Condition value: " + getConditionValue());
     }
 
     private void initialiseCondition() {
@@ -39,6 +41,7 @@ public class FcsRuleCondition implements Condition {
                 conditionId = ConditionId.VALID_PERIODS;
                 break;
             default:
+                logger.error("Condition ID not parsed: " + stringConditionId);
                 throw new UnsupportedConditionException("Condition " + stringConditionId + " is not supported");
         }
     }

@@ -52,9 +52,8 @@ public class InviteForwardedAtNoSettingsState extends BaseState {
     @Override
     public void doProvisionalResponse(SipServletResponse resp, SipServiceContext context) throws IOException {
         logger.info("Processing provisional response: " + resp.getStatus() + " " + resp.getReasonPhrase());
-        if(resp.getStatus() == SipServletResponse.SC_RINGING && !context.getCallContext().isRingingSent()) {
-            context.getInitialRequest().createResponse(SC_RINGING, "Ringing").send();
-            context.getCallContext().setRingingSent();
+        if(resp.getStatus() == SipServletResponse.SC_RINGING) {
+            context.sendRingingToCaller();
             logger.debug("Sending ringing to the initial request");
             context.cancelNotReachableTimer();
             context.startRingingTimer();
@@ -95,7 +94,6 @@ public class InviteForwardedAtNoSettingsState extends BaseState {
         context.getCallContext().cancelAllOutgoing();
         if (context.isRingingTimer(timer)) {
             context.doRejectInvite(SC_REQUEST_TIMEOUT, "Request timeout");
-
         }
         else if (context.isNotReachableTimer(timer)) {
             context.doRejectInvite(SC_TEMPORARILY_UNAVAILABLE, "Temporarily unavailable");

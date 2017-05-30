@@ -136,7 +136,7 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public void setUserSettings(JSONObject settings) {
+    public void setUserSettingsJSON(JSONObject settings) {
         serviceConfig = new FcsServiceConfig(settings);
         defaultNotReachablePeriod = serviceConfig.getNotReachableTimer();
         defaultRinginPeriod = serviceConfig.getDefaultPeriod();
@@ -172,11 +172,16 @@ public class FcsServiceContext implements SipServiceContext {
     public void doParallel() throws IOException, ServletParseException, SQLException {
 
         List<URI> uris = getTargetAddresses(currentAction.getTargets());
-        // atLeastOneRequestSent = false;
+        StringBuilder targets = new StringBuilder();
         for (URI uri :
                 uris) {
+            targets.append(uri.toString() + "\n");
             callContext.createRequest("INVITE", uri, this).send();
         }
+        logger.trace("do parallel ringing to targets:\n"
+                + targets);
+
+        cancelAllTimers();
 
         //Set timer
         notReachableTimer
@@ -198,6 +203,8 @@ public class FcsServiceContext implements SipServiceContext {
         URI uri = getTargetAddress(target);
         callContext.createRequest("INVITE", uri, this).send();
 
+        cancelAllTimers();
+
         //Set timer
         notReachableTimer
                 = CommonUtils.getTimerService().createTimer(
@@ -216,13 +223,15 @@ public class FcsServiceContext implements SipServiceContext {
         }
         else {
             getInitialRequest().createResponse(SC_RINGING, "Ringing").send();
+            getCallContext().setRingingSent();
             return true;
         }
     }
 
     @Override
     public boolean isRingingTimer(ServletTimer timer) {
-        if (timer.equals(ringingTimer)) {
+        if (timer == ringingTimer) {
+            logger.debug("it was ringing timer");
             return true;
         }
         return false;
@@ -230,7 +239,8 @@ public class FcsServiceContext implements SipServiceContext {
 
     @Override
     public boolean isNotReachableTimer(ServletTimer timer) {
-        if (timer.equals(notReachableTimer)) {
+        if (timer == notReachableTimer) {
+            logger.debug("it was not-reachable timer");
             return true;
         }
         return false;
@@ -293,6 +303,7 @@ public class FcsServiceContext implements SipServiceContext {
 
     @Override
     public boolean cancelNotReachableTimer() {
+        logger.debug("Cancelling not reachable timer timer");
         if (notReachableTimer != null) {
             notReachableTimer.cancel();
             return true;
@@ -321,6 +332,7 @@ public class FcsServiceContext implements SipServiceContext {
 
     @Override
     public boolean cancelRingingTimer() {
+        logger.debug("Cancelling ringing timer");
         if (ringingTimer != null){
             ringingTimer.cancel();
             return true;
@@ -334,10 +346,12 @@ public class FcsServiceContext implements SipServiceContext {
     public boolean cancelAllTimers() {
         boolean anyTimerCancelled = false;
 
+        logger.debug("cancelling all timers");
+
         if (cancelNotReachableTimer()) {
             anyTimerCancelled = true;
         }
-        if (cancelNotReachableTimer()) {
+        if (cancelRingingTimer()) {
             anyTimerCancelled = true;
         }
 
@@ -346,6 +360,8 @@ public class FcsServiceContext implements SipServiceContext {
 
     @Override
     public synchronized void doTimeout(ServletTimer timer) throws IOException, SQLException, ServletParseException {
+        logger.debug("Received timer: " + timer
+                + "\nin state " + serviceState.getClass().getSimpleName());
         serviceState.doTimeout(timer, this);
     }
 

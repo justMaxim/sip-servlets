@@ -48,7 +48,6 @@ public class SerialRingingExecutedState extends BaseState {
                 nextState = new InviteCanceledState();
             }
         }
-        resp.createAck().send();
         context.setState(nextState);
     }
 

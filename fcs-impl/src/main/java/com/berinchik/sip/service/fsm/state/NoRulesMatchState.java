@@ -23,34 +23,40 @@ public class NoRulesMatchState extends InviteForwardedAtNoSettingsState {
     private static Log logger = LogFactory.getLog(NoRulesMatchState.class);
 
     @Override
-    public void doErrorResponse(SipServletResponse resp, SipServiceContext context) throws IOException, SQLException, ServletParseException {
+    public void doErrorResponse(SipServletResponse resp, SipServiceContext context)
+            throws IOException, SQLException, ServletParseException {
         logger.info("Processing error response: " + resp.getStatus() + " " + resp.getReasonPhrase());
         context.cancelAllTimers();
-
+        logger.trace("all timers canceled");
         List<Rule> rulesList
                 = context.getUserSettings().getRuleSet().getRules();
+
+        context.getCallContext().removeRequest(resp.getRequest());
+
+        logger.trace("matching rules");
         Rule matchedRule = matchRuleAtErrorResponse(rulesList, resp);
         SipServiceState nextState = null;
         ActionSet serviceActionSet = null;
 
         if (matchedRule != null) {
+            logger.trace("rule matched:\n" + matchedRule);
             context.setMatchedRule(matchedRule);
+
             serviceActionSet = matchedRule.getActionSet();
             context.setActionSet(serviceActionSet);
 
             Action currentAction = context.getCurrentAction();
+            logger.trace("performing action");
             nextState = performAction(currentAction, context);
         }
         else {
             context.doRejectInvite(resp.getStatus(), resp.getReasonPhrase());
             nextState = new InviteCanceledState();
         }
-        context.getCallContext().removeRequest(resp.getRequest());
-        resp.createAck().send();
         context.setState(nextState);
     }
 
-    @Override
+    /*@Override
     public void doProvisionalResponse(SipServletResponse resp, SipServiceContext context) throws IOException {
         logger.info("Processing provisional response: " + resp.getStatus() + " " + resp.getReasonPhrase());
         if (resp.getStatus() == SC_RINGING) {
@@ -58,7 +64,7 @@ public class NoRulesMatchState extends InviteForwardedAtNoSettingsState {
             context.sendRingingToCaller();
         }
         context.startRingingTimer();
-    }
+    }*/
 
     @Override
     public void noAckReceived(SipErrorEvent sipErrorEvent, SipServiceContext context) {

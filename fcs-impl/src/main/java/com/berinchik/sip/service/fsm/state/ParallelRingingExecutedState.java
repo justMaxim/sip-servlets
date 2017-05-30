@@ -3,6 +3,8 @@ package com.berinchik.sip.service.fsm.state;
 import com.berinchik.sip.config.action.Action;
 import com.berinchik.sip.error.FcsUnexpectedException;
 import com.berinchik.sip.service.fsm.SipServiceContext;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.mobicents.media.server.io.sdp.SdpException;
 
 import javax.servlet.sip.*;
@@ -14,6 +16,8 @@ import static javax.servlet.sip.SipServletResponse.*;
  * Created by Maksim on 27.05.2017.
  */
 public class ParallelRingingExecutedState extends BaseState {
+
+    private static Log logger = LogFactory.getLog(ParallelRingingExecutedState.class);
 
     @Override
     public void doCancel(SipServletRequest req, SipServiceContext context)
@@ -29,7 +33,9 @@ public class ParallelRingingExecutedState extends BaseState {
 
         context.getCallContext().removeRequest(resp.getRequest());
 
+        logger.debug("check if there are no more ongoing requests");
         if (context.getCallContext().noRequestsLeft()) {
+            logger.debug("there are no more ongoing requests");
             SipServiceState nextState = null;
             Action nextAction = null;
 
@@ -48,8 +54,10 @@ public class ParallelRingingExecutedState extends BaseState {
                 }
             }
             context.setState(nextState);
-            resp.createAck().send();
+            return;
         }
+        logger.debug("There are steal ongoing requests: "
+                + context.getCallContext().getAllCurrentRequests().size());
         //If there are steal unfinished requests, then wait for timers or for responses.
         //No state change needed.
     }
@@ -75,37 +83,45 @@ public class ParallelRingingExecutedState extends BaseState {
     @Override
     public void doTimeout(ServletTimer timer, SipServiceContext context)
             throws IOException, SQLException, ServletParseException {
-        SipServiceState nextState;
+        SipServiceState nextState = null;
 
+        //fixme: fix this method
         if(context.isNotReachableTimer(timer)) {
             context.getCallContext().cancelAllInitialOutgoing();
-            nextState = doParallel(context, SC_TEMPORARILY_UNAVAILABLE, "Temporarily unavailable");
+            nextState = executeTimeoutAction(context, SC_TEMPORARILY_UNAVAILABLE, "Temporarily unavailable");
         }
         else if(context.isRingingTimer(timer)) {
             context.getCallContext().cancelAllOutgoing();
-            nextState = doParallel(context, SC_REQUEST_TIMEOUT, "Temporarily unavailable");
+            nextState = executeTimeoutAction(context, SC_REQUEST_TIMEOUT, "Temporarily unavailable");
         }
         else {
             throw new FcsUnexpectedException("Unrecognised timer: " + timer);
         }
 
+        //fixme: nextState stays null, bad logic
         context.setState(nextState);
     }
 
-    private SipServiceState doParallel(SipServiceContext context ,int rejectStatus, String rejectMessage)
+    private SipServiceState executeTimeoutAction(SipServiceContext context , int rejectStatus, String rejectMessage)
             throws IOException, SQLException, ServletParseException {
+
+        //fixme: bad logic
+
         SipServiceState nextState = null;
         Action nextAction = null;
+        logger.debug("do parallel ringing");
 
         if (context.isFlexible()) {
             //if flexible distribution, try to perform next action
             nextAction = context.getNextAction();
 
             if (nextAction != null) {
+                logger.info("next action != null");
                 context.getInitialRequest().createResponse(SC_TRYING, "Trying");
                 nextState = performAction(nextAction, context);
             }
             else {
+                logger.info("next action == null");
                 context.doRejectInvite(rejectStatus, rejectMessage);
                 nextState = new InviteCanceledState();
             }
