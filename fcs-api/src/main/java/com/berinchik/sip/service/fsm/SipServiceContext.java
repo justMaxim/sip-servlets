@@ -96,4 +96,6 @@ public interface SipServiceContext {
     void forwardBye(SipServletRequest receivedByeRequest) throws IOException, ServletParseException;
 
     boolean isRingingSent();
+
+    void setBestResponse(SipServletResponse response);
 }

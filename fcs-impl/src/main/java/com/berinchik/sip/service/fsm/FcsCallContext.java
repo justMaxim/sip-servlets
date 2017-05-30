@@ -7,6 +7,7 @@ import org.apache.commons.logging.LogFactory;
 import javax.servlet.sip.*;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -30,17 +31,17 @@ public class FcsCallContext implements CallContext {
     }
 
     @Override
-    public SipApplicationSession getApplicationSession() {
+    public synchronized SipApplicationSession getApplicationSession() {
         return initialRequest.getApplicationSession();
     }
 
     @Override
-    public SipServletRequest getInitialRequest() {
+    public synchronized SipServletRequest getInitialRequest() {
         return initialRequest;
     }
 
     @Override
-    public void setInitialRequest(SipServletRequest request) {
+    public synchronized void setInitialRequest(SipServletRequest request) {
         initialRequest = request;
     }
 
@@ -50,29 +51,29 @@ public class FcsCallContext implements CallContext {
     }
 
     @Override
-    public void addRequest(SipServletRequest req) {
+    public synchronized void addRequest(SipServletRequest req) {
         currentRequests.add(req);
 
     }
 
     @Override
-    public void removeRequest(SipServletRequest request) {
+    public synchronized void removeRequest(SipServletRequest request) {
         currentRequests.remove(request);
     }
 
     @Override
-    public void removeRequests(List<SipServletRequest> requests) {
+    public synchronized void removeRequests(List<SipServletRequest> requests) {
         currentRequests.removeAll(requests);
     }
 
     @Override
-    public void removeAllRequestsExceptOne(SipServletRequest request) {
+    public synchronized void removeAllRequestsExceptOne(SipServletRequest request) {
         currentRequests.clear();
         currentRequests.add(request);
     }
 
     @Override
-    public SipServletRequest createRequest(String Method, URI toURI, SipServiceContext serviceContext)
+    public synchronized SipServletRequest createRequest(String Method, URI toURI, SipServiceContext serviceContext)
             throws IOException {
 
         SipServletRequest newRequest
@@ -87,13 +88,13 @@ public class FcsCallContext implements CallContext {
     }
 
     @Override
-    public SipServletRequest createByeToCallee(SipServiceContext context) {
+    public synchronized SipServletRequest createByeToCallee(SipServiceContext context) {
         this.byeRequest = successfulRequest.getSession().createRequest("BYE");
         return byeRequest;
     }
 
     @Override
-    public SipServletRequest createByeToCaller(SipServiceContext context) throws ServletParseException {
+    public synchronized SipServletRequest createByeToCaller(SipServiceContext context) throws ServletParseException {
         this.byeRequest = initialRequest.getSession().createRequest("BYE");
         return byeRequest;
     }
@@ -104,37 +105,48 @@ public class FcsCallContext implements CallContext {
     }
 
     @Override
-    public void setSuccessfulResponse(SipServletResponse resp) {
+    public synchronized void setSuccessfulResponse(SipServletResponse resp) {
         successResponse = resp;
     }
 
     @Override
-    public SipServletResponse getSuccessfulResponse() {
+    public synchronized SipServletResponse getSuccessfulResponse() {
         return successResponse;
     }
 
     @Override
-    public void setByeRequest(SipServletRequest byeRequest) {
+    public synchronized void setByeRequest(SipServletRequest byeRequest) {
         this.byeRequest = byeRequest;
     }
 
     @Override
-    public SipServletRequest getByeRequest() {
+    public synchronized SipServletRequest getByeRequest() {
         return byeRequest;
     }
 
     @Override
-    public boolean isRingingSent() {
+    public synchronized boolean isRingingSent() {
         return this.isRingingSent;
     }
 
     @Override
-    public void setRingingSent() {
+    public synchronized void setRingingSent() {
         isRingingSent = true;
     }
 
     @Override
-    public void cancelAllOutgoing() throws IOException {
+    public synchronized boolean hasEarlyOutgoingDialogs() {
+        for (SipServletRequest request:
+                currentRequests) {
+            if (request.getSession().getState() == SipSession.State.EARLY) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public synchronized void cancelAllOutgoing() throws IOException {
         for (SipServletRequest request:
              currentRequests) {
              request.createCancel().send();
@@ -143,12 +155,13 @@ public class FcsCallContext implements CallContext {
     }
 
     @Override
-    public void cancelAllInitialOutgoing() throws IOException {
-        for (SipServletRequest request:
-                currentRequests) {
+    public synchronized void cancelAllInitialOutgoing() throws IOException {
+
+        for (Iterator<SipServletRequest> it = currentRequests.iterator(); it.hasNext(); ) {
+            SipServletRequest request = it.next();
             if(request.getSession().getState() == SipSession.State.INITIAL) {
                 request.createCancel().send();
-                removeRequest(request);
+                it.remove();
             }
         }
     }
@@ -160,6 +173,4 @@ public class FcsCallContext implements CallContext {
     public SipServletRequest getSuccessfulRequest() {
         return successfulRequest;
     }
-
-
 }

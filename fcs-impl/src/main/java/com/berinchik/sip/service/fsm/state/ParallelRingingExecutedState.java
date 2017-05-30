@@ -87,17 +87,24 @@ public class ParallelRingingExecutedState extends BaseState {
 
         //fixme: fix this method
         if(context.isNotReachableTimer(timer)) {
+            logger.debug("Canceling initial dialogs");
             context.getCallContext().cancelAllInitialOutgoing();
-            nextState = executeTimeoutAction(context, SC_TEMPORARILY_UNAVAILABLE, "Temporarily unavailable");
+            if (!context.getCallContext().hasEarlyOutgoingDialogs()) {
+                //Если нет ранних диалогов
+                nextState = executeTimeoutAction(context, SC_TEMPORARILY_UNAVAILABLE, "Temporarily unavailable");
+            }
+            //Если есть ранние диалоги, то звонок продолжается в том же состоянии
         }
         else if(context.isRingingTimer(timer)) {
+            if (!context.getCallContext().hasEarlyOutgoingDialogs()) {
+                //Если нет ранних диалогов
+            }
             context.getCallContext().cancelAllOutgoing();
-            nextState = executeTimeoutAction(context, SC_REQUEST_TIMEOUT, "Temporarily unavailable");
+            nextState = executeTimeoutAction(context, SC_REQUEST_TIMEOUT, "Ringing timeout");
         }
         else {
             throw new FcsUnexpectedException("Unrecognised timer: " + timer);
         }
-
         //fixme: nextState stays null, bad logic
         context.setState(nextState);
     }
@@ -106,25 +113,27 @@ public class ParallelRingingExecutedState extends BaseState {
             throws IOException, SQLException, ServletParseException {
 
         //fixme: bad logic
-
         SipServiceState nextState = null;
         Action nextAction = null;
-        logger.debug("do parallel ringing");
 
         if (context.isFlexible()) {
-            //if flexible distribution, try to perform next action
+            //Если flexible, попытаться выполнить следующее действие
             nextAction = context.getNextAction();
-
+            logger.debug("Flexible communication");
             if (nextAction != null) {
-                logger.info("next action != null");
-                context.getInitialRequest().createResponse(SC_TRYING, "Trying");
+                logger.debug("next action != null");
                 nextState = performAction(nextAction, context);
             }
             else {
-                logger.info("next action == null");
+                logger.debug("next action == null");
                 context.doRejectInvite(rejectStatus, rejectMessage);
                 nextState = new InviteCanceledState();
             }
+        }
+        else {
+            logger.debug("not flexible");
+            context.doRejectInvite(rejectStatus, rejectMessage);
+            nextState = new InviteCanceledState();
         }
 
         return nextState;

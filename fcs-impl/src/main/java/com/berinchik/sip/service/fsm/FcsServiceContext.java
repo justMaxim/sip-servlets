@@ -41,8 +41,9 @@ public class FcsServiceContext implements SipServiceContext {
     private Action currentAction;
     private ServletTimer notReachableTimer;
     private ServletTimer ringingTimer;
+    private SipServletResponse bestResponse;
 
-    private int defaultRinginPeriod = 10;
+    private int defaultRingingPeriod = 11;
     private int defaultNotReachablePeriod = 10;
 
     public FcsServiceContext(SipFactory sipFactory) {
@@ -72,7 +73,10 @@ public class FcsServiceContext implements SipServiceContext {
     public synchronized void doErrorResponse(SipServletResponse resp)
             throws IOException, SQLException, ServletParseException {
         messageAndStateInfo(resp);
-        serviceState.doErrorResponse(resp, this);
+        if (resp.getStatus() != SC_REQUEST_TERMINATED){
+            setBestResponse(resp);
+            serviceState.doErrorResponse(resp, this);
+        }
     }
 
     @Override
@@ -114,7 +118,7 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public CallContext getCallContext() {
+    public synchronized CallContext getCallContext() {
         return this.callContext;
     }
 
@@ -124,22 +128,22 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public SipServletRequest getInitialRequest() {
+    public synchronized SipServletRequest getInitialRequest() {
         return callContext.getInitialRequest();
     }
 
     @Override
-    public void setState(SipServiceState state) {
+    public synchronized void setState(SipServiceState state) {
         logger.info("\nstate changes from " + serviceState.getClass().getSimpleName()
                 + "\nto " + state.getClass().getSimpleName());
         this.serviceState = state;
     }
 
     @Override
-    public void setUserSettingsJSON(JSONObject settings) {
+    public synchronized void setUserSettingsJSON(JSONObject settings) {
         serviceConfig = new FcsServiceConfig(settings);
         defaultNotReachablePeriod = serviceConfig.getNotReachableTimer();
-        defaultRinginPeriod = serviceConfig.getDefaultPeriod();
+        defaultRingingPeriod = serviceConfig.getDefaultPeriod();
     }
 
     @Override
@@ -169,7 +173,7 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public void doParallel() throws IOException, ServletParseException, SQLException {
+    public synchronized void doParallel() throws IOException, ServletParseException, SQLException {
 
         List<URI> uris = getTargetAddresses(currentAction.getTargets());
         StringBuilder targets = new StringBuilder();
@@ -193,7 +197,8 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public boolean doSerial() throws ServletParseException, IOException {
+    public synchronized boolean doSerial()
+            throws ServletParseException, IOException {
         ActionTarget target = currentAction.getNextTarget();
 
         if (target == null) {
@@ -247,8 +252,12 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public void doRejectInvite(int code, String message) throws IOException {
+    public synchronized void doRejectInvite(int code, String message) throws IOException {
 
+        if (bestResponse != null) {
+            code = bestResponse.getStatus();
+            message = bestResponse.getReasonPhrase();
+        }
         SipServletResponse rejectInviteResponse
                 = callContext.getInitialRequest().createResponse(code, message);
 
@@ -256,7 +265,7 @@ public class FcsServiceContext implements SipServiceContext {
     }
 
     @Override
-    public boolean sendInvite(String primaryUser) throws SQLException, ServletParseException, IOException {
+    public synchronized boolean sendInvite(String primaryUser) throws SQLException, ServletParseException, IOException {
         Registrar registrar = CommonUtils.getRegistrarHelper(getInitialRequest());
         List<Binding> bindings = registrar.getBindings(primaryUser);
 
@@ -320,7 +329,7 @@ public class FcsServiceContext implements SipServiceContext {
         ringingTimer
                 = CommonUtils.getTimerService().createTimer(
                 callContext.getApplicationSession(),
-                defaultRinginPeriod * 1000,
+                defaultRingingPeriod * 1000,
                 false,
                 null);
     }
@@ -395,6 +404,15 @@ public class FcsServiceContext implements SipServiceContext {
             byeReq = callContext.createByeToCaller(this);
         }
         byeReq.send();
+    }
+
+    @Override
+    public void setBestResponse(SipServletResponse response) {
+        logger.debug("Trying to set best response");
+        if (response.getStatus() == SC_BUSY_HERE || response.getStatus() == SC_BUSY_EVERYWHERE) {
+            logger.debug("setting best response: " + response);
+            bestResponse = response;
+        }
     }
 
     public List<URI> getTargetAddresses(List<ActionTarget> targets) throws ServletParseException {

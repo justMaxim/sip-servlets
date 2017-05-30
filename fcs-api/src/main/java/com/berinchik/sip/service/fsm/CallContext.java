@@ -23,6 +23,8 @@ public interface CallContext {
 
     SipServletRequest createByeToCaller(SipServiceContext context) throws ServletParseException;
 
+    boolean hasEarlyOutgoingDialogs();
+
     void cancelAllOutgoing() throws IOException;
 
     void cancelAllInitialOutgoing() throws IOException;

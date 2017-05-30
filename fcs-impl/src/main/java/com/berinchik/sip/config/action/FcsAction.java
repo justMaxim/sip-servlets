@@ -50,14 +50,14 @@ public class FcsAction implements Action {
 
     @Override
     public ActionTarget getNextTarget() {
-        if (actionId == ActionId.PARALLEL || targets.size() <= currentTarget - 1) {
+
+        try {
+            logger.debug("Returning target number: " + currentTarget);
+            return targets.get(currentTarget++);
+        }
+        catch(IndexOutOfBoundsException ex) {
             return null;
         }
-
-        ActionTarget nextTarget = targets.get(currentTarget);
-        currentTarget += 1;
-
-        return nextTarget;
     }
 
     @Override

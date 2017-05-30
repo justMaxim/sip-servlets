@@ -39,7 +39,7 @@ public class NoRulesMatchState extends InviteForwardedAtNoSettingsState {
         ActionSet serviceActionSet = null;
 
         if (matchedRule != null) {
-            logger.trace("rule matched:\n" + matchedRule);
+            logger.trace("rule matched:\n" + matchedRule.getId());
             context.setMatchedRule(matchedRule);
 
             serviceActionSet = matchedRule.getActionSet();
@@ -72,15 +72,17 @@ public class NoRulesMatchState extends InviteForwardedAtNoSettingsState {
     }
 
     @Override
-    public void doTimeout(ServletTimer timer, SipServiceContext context) throws ServletParseException, SQLException, IOException {
+    public void doTimeout(ServletTimer timer, SipServiceContext context)
+            throws ServletParseException, SQLException, IOException {
 
         List<Rule> rulesList
                 = context.getUserSettings().getRuleSet().getRules();
         Rule matchedRule = null;
         SipServiceState nextState = null;
-
+        context.getCallContext().cancelAllOutgoing();
 
         if(context.isNotReachableTimer(timer)) {
+
             matchedRule = super.matchRulesAtNotReachableTimeout(rulesList);
 
             if (matchedRule == null) {
@@ -101,7 +103,6 @@ public class NoRulesMatchState extends InviteForwardedAtNoSettingsState {
         else {
             throw new FcsUnexpectedException("Unrecognised timer: " + timer);
         }
-
         if (matchedRule != null) {
             context.setMatchedRule(matchedRule);
             ActionSet serviceActionSet = matchedRule.getActionSet();

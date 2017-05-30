@@ -108,6 +108,8 @@ public class BaseState implements SipServiceState {
     }
 
     protected Rule matchRuleAtErrorResponse(List<Rule> rulesList, SipServletResponse resp) {
+
+        logger.debug("matching rules at Error response");
         for (Rule rule : rulesList) {
             List<Condition> conditions = rule.getConditions();
             if (conditionsMatchAtErrorResponse(conditions, resp)) {
