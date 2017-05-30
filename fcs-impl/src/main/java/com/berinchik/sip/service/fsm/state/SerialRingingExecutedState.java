@@ -19,15 +19,6 @@ public class SerialRingingExecutedState extends BaseState {
 
     private static Log logger = LogFactory.getLog(SerialRingingExecutedState.class);
 
-
-    @Override
-    public void doCancel(SipServletRequest req, SipServiceContext context)
-            throws IOException {
-        context.getCallContext().cancelAllOutgoing();
-        context.cancelAllTimers();
-        context.setState(new InviteCanceledState());
-    }
-
     @Override
     public void doErrorResponse(SipServletResponse resp, SipServiceContext context)
             throws IOException, SQLException, ServletParseException {

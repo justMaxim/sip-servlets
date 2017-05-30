@@ -30,17 +30,7 @@ public class DialogInstalledState extends BaseState {
     }
 
     @Override
-    public void doCancel(SipServletRequest req, SipServiceContext context) {
-
-    }
-
-    @Override
     public void doErrorResponse(SipServletResponse resp, SipServiceContext context) {
-
-    }
-
-    @Override
-    public void doInvite(SipServletRequest req, SipServiceContext context) throws SQLException, IOException, ServletParseException {
 
     }
 
@@ -50,32 +40,7 @@ public class DialogInstalledState extends BaseState {
     }
 
     @Override
-    public void doRedirectResponse(SipServletResponse resp, SipServiceContext context) {
-
-    }
-
-    @Override
-    public void doSubscribe(SipServletRequest req, SipServiceContext context) {
-
-    }
-
-    @Override
     public void doSuccessResponse(SipServletResponse resp, SipServiceContext context) throws IOException {
-
-    }
-
-    @Override
-    public void doUpdate(SipServletRequest req, SipServiceContext context) {
-
-    }
-
-    @Override
-    public void noAckReceived(SipErrorEvent sipErrorEvent, SipServiceContext context) {
-
-    }
-
-    @Override
-    public void doTimeout(ServletTimer timer, SipServiceContext context) {
 
     }
 }

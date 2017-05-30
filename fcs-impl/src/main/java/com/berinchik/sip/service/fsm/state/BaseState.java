@@ -39,9 +39,10 @@ public class BaseState implements SipServiceState {
     }
 
     @Override
-    public void doCancel(SipServletRequest req, SipServiceContext context)
-            throws IOException {
-        throw new IllegalStateException(SC_ERROR_MESSAGE);
+    public void doCancel(SipServletRequest req, SipServiceContext context) throws IOException {
+        context.cancelAllTimers();
+        context.getCallContext().cancelAllOutgoing();
+        context.setState(new InviteCanceledState());
     }
 
     @Override

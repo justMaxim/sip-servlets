@@ -20,33 +20,12 @@ public class InviteForwardedAtNoSettingsState extends BaseState {
 
     private static Log logger = LogFactory.getLog(InviteForwardedAtNoSettingsState.class);
 
-    @Override
-    public void doAck(SipServletRequest req, SipServiceContext context) {
-        throw new IllegalStateException("Bye received in early dialog state");
-    }
-
-    @Override
-    public void doBye(SipServletRequest req, SipServiceContext context) {
-        throw new IllegalStateException("Bye received in early dialog state");
-    }
-
-    @Override
-    public void doCancel(SipServletRequest req, SipServiceContext context) throws IOException {
-        context.getCallContext().cancelAllOutgoing();
-        context.setState(new InviteCanceledState());
-    }
 
     @Override
     public void doErrorResponse(SipServletResponse resp, SipServiceContext context) throws IOException, SQLException, ServletParseException {
         logger.info("Processing error response: " + resp.getStatus() + " " + resp.getReasonPhrase());
         context.getInitialRequest().createResponse(resp.getStatus(), resp.getReasonPhrase()).send();
         context.setState(new InviteCanceledState());
-    }
-
-    @Override
-    public void doInvite(SipServletRequest req, SipServiceContext context) throws SQLException, IOException, ServletParseException {
-        //Re-invite not implemented
-        throw new UnsupportedOperationException("Re-invite is not implemented");
     }
 
     @Override
@@ -61,31 +40,10 @@ public class InviteForwardedAtNoSettingsState extends BaseState {
     }
 
     @Override
-    public void doRedirectResponse(SipServletResponse resp, SipServiceContext context) {
-        throw new UnsupportedOperationException("Redirect currently unsupported");
-    }
-
-    @Override
-    public void doSubscribe(SipServletRequest req, SipServiceContext context) {
-        throw new UnsupportedOperationException("Subscribe is not supported");
-    }
-
-    @Override
     public void doSuccessResponse(SipServletResponse resp, SipServiceContext context)
             throws IOException, SdpException {
         context.sendSuccess(resp);
         context.setState(new SentOkForInitialInvite());
-    }
-
-    @Override
-    public void doUpdate(SipServletRequest req, SipServiceContext context) {
-        throw new UnsupportedOperationException("Update is not supported");
-    }
-
-    @Override
-    public void noAckReceived(SipErrorEvent sipErrorEvent, SipServiceContext context) {
-        throw new UnsupportedOperationException("No ack received");
-        //notify 200 Ok sender, that ack was not received
     }
 
     @Override

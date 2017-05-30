@@ -56,21 +56,6 @@ public class NoRulesMatchState extends InviteForwardedAtNoSettingsState {
         context.setState(nextState);
     }
 
-    /*@Override
-    public void doProvisionalResponse(SipServletResponse resp, SipServiceContext context) throws IOException {
-        logger.info("Processing provisional response: " + resp.getStatus() + " " + resp.getReasonPhrase());
-        if (resp.getStatus() == SC_RINGING) {
-            context.cancelNotReachableTimer();
-            context.sendRingingToCaller();
-        }
-        context.startRingingTimer();
-    }*/
-
-    @Override
-    public void noAckReceived(SipErrorEvent sipErrorEvent, SipServiceContext context) {
-
-    }
-
     @Override
     public void doTimeout(ServletTimer timer, SipServiceContext context)
             throws ServletParseException, SQLException, IOException {
