@@ -1,8 +1,6 @@
-package com.berinchik.sip.service.registrar.database.util;
+package com.berinchik.sip.service.database.util;
 
 import com.berinchik.sip.util.CommonUtils;
-
-import java.util.Date;
 
 /**
  * Created by Maksim on 24.05.2017.

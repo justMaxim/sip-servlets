@@ -16,9 +16,9 @@ import static javax.servlet.sip.SipServletResponse.*;
 /**
  * Created by Maksim on 26.05.2017.
  */
-public class InviteForwardedAtNoSettingsState extends BaseState {
+public class NoSettingsState extends BaseState {
 
-    private static Log logger = LogFactory.getLog(InviteForwardedAtNoSettingsState.class);
+    private static Log logger = LogFactory.getLog(NoSettingsState.class);
 
 
     @Override

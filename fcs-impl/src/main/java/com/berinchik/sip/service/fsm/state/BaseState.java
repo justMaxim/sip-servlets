@@ -100,10 +100,10 @@ public class BaseState implements SipServiceState {
         switch(action.getActionId()) {
             case PARALLEL:
                 context.doParallel();
-                return new ParallelRingingExecutedState();
+                return new ParallelRingingState();
             case SERIAL:
                 context.doSerial();
-                return new SerialRingingExecutedState();
+                return new SerialRingingState();
         }
         throw new FcsUnexpectedException("Action id: " + action.getActionId() + " is not supported;");
     }

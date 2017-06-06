@@ -18,7 +18,7 @@ import static javax.servlet.sip.SipServletResponse.*;
 /**
  * Created by Maksim on 27.05.2017.
  */
-public class NoRulesMatchState extends InviteForwardedAtNoSettingsState {
+public class NoRulesMatchState extends NoSettingsState {
 
     private static Log logger = LogFactory.getLog(NoRulesMatchState.class);
 

@@ -1,7 +1,4 @@
-package com.berinchik.sip.service.registrar.database.util;
-
-import javax.servlet.sip.Address;
-import javax.servlet.sip.URI;
+package com.berinchik.sip.service.database.util;
 
 /**
  * Created by Maksim on 24.05.2017.

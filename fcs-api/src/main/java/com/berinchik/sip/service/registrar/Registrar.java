@@ -1,7 +1,7 @@
 package com.berinchik.sip.service.registrar;
 
 import org.json.JSONObject;
-import com.berinchik.sip.service.registrar.database.util.Binding;
+import com.berinchik.sip.service.database.util.Binding;
 
 import javax.servlet.sip.ServletParseException;
 import javax.servlet.sip.SipServletRequest;

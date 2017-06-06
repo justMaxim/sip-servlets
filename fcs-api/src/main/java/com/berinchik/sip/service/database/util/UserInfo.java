@@ -1,4 +1,4 @@
-package com.berinchik.sip.service.registrar.database.util;
+package com.berinchik.sip.service.database.util;
 
 import org.json.JSONObject;
 

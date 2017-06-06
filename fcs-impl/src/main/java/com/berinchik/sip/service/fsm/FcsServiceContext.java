@@ -10,7 +10,7 @@ import com.berinchik.sip.config.target.ActionTarget;
 import com.berinchik.sip.service.fsm.state.InitialState;
 import com.berinchik.sip.service.fsm.state.SipServiceState;
 import com.berinchik.sip.service.registrar.Registrar;
-import com.berinchik.sip.service.registrar.database.util.Binding;
+import com.berinchik.sip.service.database.util.Binding;
 import com.berinchik.sip.util.CommonUtils;
 import com.berinchik.sip.util.SdpUtils;
 import org.apache.commons.logging.Log;

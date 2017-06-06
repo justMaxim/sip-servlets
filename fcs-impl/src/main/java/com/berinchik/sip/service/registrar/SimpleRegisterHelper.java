@@ -1,9 +1,9 @@
 package com.berinchik.sip.service.registrar;
 
 import com.berinchik.sip.error.FcsUnexpectedException;
-import com.berinchik.sip.service.registrar.database.DatabaseAccessor;
-import com.berinchik.sip.service.registrar.database.SimpleDatabaseAccessor;
-import com.berinchik.sip.service.registrar.database.util.Binding;
+import com.berinchik.sip.service.database.DatabaseAccessor;
+import com.berinchik.sip.service.database.SimpleDatabaseAccessor;
+import com.berinchik.sip.service.database.util.Binding;
 import com.berinchik.sip.util.CommonUtils;
 
 import org.json.JSONObject;

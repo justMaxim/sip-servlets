@@ -1,8 +1,7 @@
-package com.berinchik.sip.service.registrar.database;
+package com.berinchik.sip.service.database;
 
-import com.berinchik.sip.service.registrar.database.util.Binding;
+import com.berinchik.sip.service.database.util.Binding;
 import org.json.JSONObject;
-import org.postgresql.ds.PGConnectionPoolDataSource;
 
 import java.sql.SQLException;
 import java.util.List;

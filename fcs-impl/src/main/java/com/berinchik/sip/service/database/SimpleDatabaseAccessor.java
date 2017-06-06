@@ -1,6 +1,6 @@
-package com.berinchik.sip.service.registrar.database;
+package com.berinchik.sip.service.database;
 
-import com.berinchik.sip.service.registrar.database.util.UserBinding;
+import com.berinchik.sip.service.database.util.UserBinding;
 import com.berinchik.sip.util.CommonUtils;
 
 import org.json.JSONObject;
@@ -12,7 +12,7 @@ import java.util.List;
 //import org.postgresql.ds.PGConnectionPoolDataSource;
 
 import org.apache.log4j.Logger;
-import com.berinchik.sip.service.registrar.database.util.Binding;
+import com.berinchik.sip.service.database.util.Binding;
 import org.postgresql.ds.PGConnectionPoolDataSource;
 
 /**

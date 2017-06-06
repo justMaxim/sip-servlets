@@ -15,9 +15,9 @@ import static javax.servlet.sip.SipServletResponse.*;
 /**
  * Created by Maksim on 27.05.2017.
  */
-public class ParallelRingingExecutedState extends BaseState {
+public class ParallelRingingState extends BaseState {
 
-    private static Log logger = LogFactory.getLog(ParallelRingingExecutedState.class);
+    private static Log logger = LogFactory.getLog(ParallelRingingState.class);
 
     @Override
     public void doErrorResponse(SipServletResponse resp, SipServiceContext context)

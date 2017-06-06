@@ -92,7 +92,7 @@ public class InitialState extends BaseState  {
             else {
                 logger.info("No service config found for user: " + reqUriString);
                 if(context.sendInvite(primaryUserIdentity)){
-                    nextState = new InviteForwardedAtNoSettingsState();
+                    nextState = new NoSettingsState();
                 }
                 else {
                     context.doRejectInvite(SC_TEMPORARILY_UNAVAILABLE, "Temporarily unavailable");

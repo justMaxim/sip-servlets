@@ -333,6 +333,4 @@ public class FlexibleCommunicationServlet
 				+ "\ntoAddress.getQ: " + toAddress.getQ()
 		);
 	}
-
-
 }
